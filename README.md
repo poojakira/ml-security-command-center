@@ -1,5 +1,7 @@
 # ML Security Command Center
 
+[![Live Dashboard](https://img.shields.io/badge/Live_Dashboard-View-blue)](https://poojakira.github.io/mlsec-dashboards/ml-security-command-center/)
+
 A single-page HTML dashboard that displays all 11 ML security projects in one view. It shows a 3D network graph of the products, their descriptions, and a MITRE ATT&CK technique coverage grid.
 
 **This is a static HTML page with simulated data.** The metrics (events/min, threats blocked, detection rates) are randomly generated in JavaScript — nothing connects to real services. The "Live" indicators and activity feed are cosmetic animations, not real-time data.
