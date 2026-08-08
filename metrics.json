@@ -1,0 +1,67 @@
+{
+  "schema_version": "command-center-metrics-v1",
+  "generated_at_utc": "2026-08-08T06:06:07.841466+00:00",
+  "generator": "generate_metrics.py",
+  "note": "All values derived from actual tool outputs and evidence files. No random generation.",
+  "summary": {
+    "total_test_functions": 933,
+    "total_repos_scanned": 9,
+    "portfolio_tools_active": 2,
+    "research_repos": 7
+  },
+  "products": {
+    "aws-agent-identity-guard": {
+      "rule_count": 22,
+      "test_count": 63,
+      "findings_on_examples": 0,
+      "sarif_output": true,
+      "source": "live"
+    },
+    "hf-model-provenance-scanner": {
+      "test_count": 130,
+      "fp_rate": 5.9,
+      "detection_rate": 100.0,
+      "total_checks": 17,
+      "redteam_attacks_detected": 12,
+      "redteam_attacks_total": 12,
+      "false_positives": 1,
+      "source": "live"
+    },
+    "mcp-security-gateway-monitor": {
+      "test_count": 476,
+      "detection_rate": 51.0,
+      "layers": 5,
+      "p95_latency_ms": 0.129,
+      "replay_iterations": 100,
+      "detection_rate_from_corpus": 75.0,
+      "source": "live"
+    },
+    "llm-redteam-framework": {
+      "test_count": 40,
+      "f1_score": 0.7,
+      "source": "live"
+    },
+    "adversarial-ml-lab": {
+      "test_count": 9,
+      "source": "live"
+    },
+    "model-privacy-attacks": {
+      "test_count": 11,
+      "source": "live"
+    },
+    "dataset-poisoning-detector": {
+      "test_count": 46,
+      "auc": 0.53,
+      "source": "live"
+    },
+    "PulseNet-RUL-Forecasting": {
+      "test_count": 106,
+      "f1_score": 0.54,
+      "source": "live"
+    },
+    "attack-v19-core": {
+      "test_count": 52,
+      "source": "live"
+    }
+  }
+}
