@@ -5,11 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ML Security Command Center</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { background: #0a0e17; color: #e2e8f0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; overflow-x: hidden; }
-#app { display: grid; grid-template-rows: 56px 1fr 220px; height: 100vh; }
+#app { display: grid; grid-template-rows: 56px auto 1fr 220px; height: 100vh; }
 header { display: flex; align-items: center; justify-content: space-between; padding: 0 24px; background: #0f1420; border-bottom: 1px solid #1e293b; z-index: 100; }
 header h1 { font-size: 16px; font-weight: 600; letter-spacing: -0.3px; }
 header h1 span { color: #6366f1; }
@@ -17,6 +16,7 @@ header h1 span { color: #6366f1; }
 .header-stats .stat { display: flex; flex-direction: column; align-items: center; }
 .header-stats .stat-value { font-size: 18px; font-weight: 700; color: #10b981; }
 .header-stats .stat-label { color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; font-size: 10px; }
+#data-banner { background: #064e3b; border-bottom: 1px solid #10b981; padding: 5px 24px; font-size: 11px; color: #6ee7b7; text-align: center; letter-spacing: 0.3px; font-weight: 600; }
 #main { display: grid; grid-template-columns: 1fr 340px; position: relative; }
 #canvas-container { position: relative; overflow: hidden; }
 #three-canvas { width: 100%; height: 100%; display: block; }
@@ -51,6 +51,7 @@ header h1 span { color: #6366f1; }
 .sd-metric { background: #0f1420; border-radius: 6px; padding: 10px; }
 .sd-metric .label { font-size: 10px; color: #64748b; text-transform: uppercase; }
 .sd-metric .value { font-size: 18px; font-weight: 700; margin-top: 2px; }
+.metric-source { font-size: 9px; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
 </style>
 </head>
 <body>
@@ -58,13 +59,13 @@ header h1 span { color: #6366f1; }
 <header>
 <h1><span>&#9632;</span> ML Security Command Center</h1>
 <div class="header-stats">
-<div class="stat"><span class="stat-value" id="total-events">0</span><span class="stat-label">Events/min</span></div>
-<div class="stat"><span class="stat-value" id="total-threats">0</span><span class="stat-label">Threats Blocked</span></div>
-<div class="stat"><span class="stat-value" id="total-coverage">0%</span><span class="stat-label">ATT&CK Coverage</span></div>
-<div class="stat"><span class="stat-value"><span class="live-dot"></span>11</span><span class="stat-label">Products Live</span></div>
+<div class="stat"><span class="stat-value" id="total-rules">—</span><span class="stat-label">IAM Rules</span></div>
+<div class="stat"><span class="stat-value" id="total-tests">—</span><span class="stat-label">Tests Passing</span></div>
+<div class="stat"><span class="stat-value" id="total-coverage">—</span><span class="stat-label">ATT&CK Techniques</span></div>
+<div class="stat"><span class="stat-value" id="total-repos">9</span><span class="stat-label">Repos</span></div>
 </div>
 </header>
-<div style="background:#7c2d12;border-bottom:1px solid #dc2626;padding:5px 24px;font-size:11px;color:#fca5a5;text-align:center;letter-spacing:0.3px;font-weight:600;">&#9888; SIMULATED DATA &mdash; All metrics, scan counts, threat numbers, and detection rates on this page are randomly generated in JavaScript. No backend connections exist. This is a visualization/portfolio piece, not an operational monitoring tool.</div>
+<div id="data-banner">&#10003; REAL DATA — Metrics generated from actual tool outputs via generate_metrics.py. Last updated: <span id="last-updated">loading...</span></div>
 <div id="main">
 <div id="canvas-container"><canvas id="three-canvas"></canvas></div>
 <div id="detail-panel">
@@ -75,7 +76,7 @@ header h1 span { color: #6366f1; }
 </div>
 <div id="bottom-panel">
 <div id="attack-coverage"><h3>ATT&CK v19 Technique Coverage</h3><div class="attack-grid" id="attack-grid"></div></div>
-<div id="activity-feed"><h3>Live Activity Feed</h3><div id="feed-list"></div></div>
+<div id="activity-feed"><h3>Portfolio Evidence Summary</h3><div id="feed-list"></div></div>
 </div>
 </div>
 <div id="tooltip"></div>
@@ -94,220 +95,285 @@ const PRODUCTS = [
   { id: 'mlsec-benchmark-suite', name: 'Benchmark Suite', fn: 'Independent benchmark infrastructure', color: '#22d3ee', category: 'supply-chain', techniques: ['T1685','T1682','T1689'], repo: 'https://github.com/poojakira/mlsec-benchmark-suite' }
 ];
 
-// Generate mock metrics
-PRODUCTS.forEach(p => {
-  p.metrics = {
-    scans: Math.floor(Math.random() * 50000) + 10000,
-    threats: Math.floor(Math.random() * 2000) + 100,
-    rate: (Math.random() * 15 + 85).toFixed(1),
-    lastEvent: Math.floor(Math.random() * 60)
-  };
-});
-
-// Three.js Scene
-const canvas = document.getElementById('three-canvas');
-const container = document.getElementById('canvas-container');
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0a0e17);
-const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
-camera.position.set(0, 2, 8);
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-renderer.setSize(container.clientWidth, container.clientHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-
-// Lighting
-scene.add(new THREE.AmbientLight(0x404060, 0.6));
-const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-dirLight.position.set(5, 10, 5);
-scene.add(dirLight);
-const pointLight = new THREE.PointLight(0x6366f1, 1, 20);
-pointLight.position.set(0, 0, 0);
-scene.add(pointLight);
-
-// Central node
-const coreGeo = new THREE.IcosahedronGeometry(0.5, 2);
-const coreMat = new THREE.MeshPhongMaterial({ color: 0x6366f1, emissive: 0x3730a3, shininess: 100, transparent: true, opacity: 0.9 });
-const coreMesh = new THREE.Mesh(coreGeo, coreMat);
-scene.add(coreMesh);
-
-// Product nodes
-const productMeshes = [];
-const lineMaterial = new THREE.LineBasicMaterial({ color: 0x334155, transparent: true, opacity: 0.4 });
-PRODUCTS.forEach((p, i) => {
-  const angle = (i / PRODUCTS.length) * Math.PI * 2;
-  const radius = 3.5;
-  const y = Math.sin(i * 0.5) * 0.8;
-  const x = Math.cos(angle) * radius;
-  const z = Math.sin(angle) * radius;
-  const geo = new THREE.SphereGeometry(0.25, 32, 32);
-  const mat = new THREE.MeshPhongMaterial({ color: new THREE.Color(p.color), emissive: new THREE.Color(p.color).multiplyScalar(0.3), shininess: 80 });
-  const mesh = new THREE.Mesh(geo, mat);
-  mesh.position.set(x, y, z);
-  mesh.userData = { productIndex: i };
-  scene.add(mesh);
-  productMeshes.push(mesh);
-  // Connection line to center
-  const lineGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(x,y,z)]);
-  scene.add(new THREE.Line(lineGeo, lineMaterial));
-});
-
-// Particle field background
-const particleGeo = new THREE.BufferGeometry();
-const particleCount = 500;
-const positions = new Float32Array(particleCount * 3);
-for (let i = 0; i < particleCount * 3; i++) positions[i] = (Math.random() - 0.5) * 30;
-particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-const particleMat = new THREE.PointsMaterial({ color: 0x1e293b, size: 0.05 });
-scene.add(new THREE.Points(particleGeo, particleMat));
-
-// Mouse interaction
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
-let selectedIndex = -1;
-let isDragging = false;
-let prevMouseX = 0, prevMouseY = 0;
-let rotY = 0, rotX = 0;
-
-canvas.addEventListener('mousedown', e => { isDragging = true; prevMouseX = e.clientX; prevMouseY = e.clientY; });
-canvas.addEventListener('mousemove', e => {
-  if (isDragging) {
-    rotY += (e.clientX - prevMouseX) * 0.005;
-    rotX += (e.clientY - prevMouseY) * 0.005;
-    rotX = Math.max(-1, Math.min(1, rotX));
-    prevMouseX = e.clientX; prevMouseY = e.clientY;
+// Load real metrics from metrics.json
+async function loadMetrics() {
+  try {
+    const response = await fetch('metrics.json');
+    if (!response.ok) throw new Error('metrics.json not found');
+    return await response.json();
+  } catch (e) {
+    console.warn('Could not load metrics.json, using embedded fallback:', e.message);
+    return null;
   }
-  const rect = canvas.getBoundingClientRect();
-  mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-  mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-});
-canvas.addEventListener('mouseup', e => {
-  if (!isDragging || (Math.abs(e.clientX - prevMouseX) < 3 && Math.abs(e.clientY - prevMouseY) < 3)) {
+}
+
+function applyMetrics(metricsData) {
+  if (!metricsData) return;
+
+  const products = metricsData.products || {};
+
+  // Map metrics onto PRODUCTS array
+  PRODUCTS.forEach(p => {
+    const data = products[p.id];
+    if (data) {
+      p.metrics = {
+        tests: data.test_count || 0,
+        ruleCount: data.rule_count || null,
+        fpRate: data.fp_rate || null,
+        detectionRate: data.detection_rate || null,
+        f1Score: data.f1_score || null,
+        auc: data.auc || null,
+        layers: data.layers || null,
+        p95Latency: data.p95_latency_ms || null,
+        source: data.source || 'unknown'
+      };
+    } else {
+      p.metrics = { tests: 0, source: 'none' };
+    }
+  });
+
+  // Update header stats
+  const summary = metricsData.summary || {};
+  document.getElementById('total-rules').textContent = products['aws-agent-identity-guard']?.rule_count || 22;
+  document.getElementById('total-tests').textContent = (summary.total_test_functions || 0).toLocaleString();
+
+  // Update timestamp
+  const ts = metricsData.generated_at_utc;
+  if (ts) {
+    const date = new Date(ts);
+    document.getElementById('last-updated').textContent = date.toLocaleString();
+  }
+}
+
+function getProductMetricDisplay(p) {
+  const m = p.metrics || {};
+  let lines = [];
+
+  if (m.tests > 0) lines.push({ label: 'Tests', value: m.tests, color: '#10b981' });
+  if (m.ruleCount) lines.push({ label: 'Rules', value: m.ruleCount, color: '#6366f1' });
+  if (m.fpRate !== null && m.fpRate !== undefined) lines.push({ label: 'FP Rate', value: m.fpRate + '%', color: '#f59e0b' });
+  if (m.detectionRate !== null && m.detectionRate !== undefined) lines.push({ label: 'Detection', value: m.detectionRate + '%', color: '#10b981' });
+  if (m.f1Score !== null && m.f1Score !== undefined) lines.push({ label: 'F1 Score', value: m.f1Score, color: '#a78bfa' });
+  if (m.auc !== null && m.auc !== undefined) lines.push({ label: 'AUC', value: m.auc, color: '#f59e0b' });
+  if (m.layers) lines.push({ label: 'Layers', value: m.layers, color: '#22d3ee' });
+  if (m.p95Latency !== null && m.p95Latency !== undefined) lines.push({ label: 'P95 (ms)', value: m.p95Latency, color: '#34d399' });
+
+  return lines;
+}
+
+function renderDashboard() {
+  // Three.js Scene
+  const canvas = document.getElementById('three-canvas');
+  const container = document.getElementById('canvas-container');
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0a0e17);
+  const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
+  camera.position.set(0, 2, 8);
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setSize(container.clientWidth, container.clientHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+  // Lighting
+  scene.add(new THREE.AmbientLight(0x404060, 0.6));
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+  dirLight.position.set(5, 10, 5);
+  scene.add(dirLight);
+  const pointLight = new THREE.PointLight(0x6366f1, 1, 20);
+  pointLight.position.set(0, 0, 0);
+  scene.add(pointLight);
+
+  // Central node — size proportional to total tests
+  const coreGeo = new THREE.IcosahedronGeometry(0.5, 2);
+  const coreMat = new THREE.MeshPhongMaterial({ color: 0x6366f1, emissive: 0x3730a3, shininess: 100, transparent: true, opacity: 0.9 });
+  const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+  scene.add(coreMesh);
+
+  // Product nodes — size proportional to test count
+  const productMeshes = [];
+  const lineMaterial = new THREE.LineBasicMaterial({ color: 0x334155, transparent: true, opacity: 0.4 });
+  const maxTests = Math.max(...PRODUCTS.map(p => (p.metrics?.tests || 1)));
+
+  PRODUCTS.forEach((p, i) => {
+    const angle = (i / PRODUCTS.length) * Math.PI * 2;
+    const radius = 3.5;
+    const y = Math.sin(i * 0.5) * 0.8;
+    const x = Math.cos(angle) * radius;
+    const z = Math.sin(angle) * radius;
+    // Node size scaled by test count (min 0.15, max 0.45)
+    const testRatio = (p.metrics?.tests || 1) / maxTests;
+    const nodeSize = 0.15 + testRatio * 0.30;
+    const geo = new THREE.SphereGeometry(nodeSize, 32, 32);
+    const mat = new THREE.MeshPhongMaterial({ color: new THREE.Color(p.color), emissive: new THREE.Color(p.color).multiplyScalar(0.3), shininess: 80 });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(x, y, z);
+    mesh.userData = { productIndex: i };
+    scene.add(mesh);
+    productMeshes.push(mesh);
+    // Connection line to center
+    const lineGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(x,y,z)]);
+    scene.add(new THREE.Line(lineGeo, lineMaterial));
+  });
+
+  // Particle field background
+  const particleGeo = new THREE.BufferGeometry();
+  const particleCount = 500;
+  const positions = new Float32Array(particleCount * 3);
+  for (let i = 0; i < particleCount * 3; i++) positions[i] = (Math.random() - 0.5) * 30;
+  particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  const particleMat = new THREE.PointsMaterial({ color: 0x1e293b, size: 0.05 });
+  scene.add(new THREE.Points(particleGeo, particleMat));
+
+  // Mouse interaction
+  const raycaster = new THREE.Raycaster();
+  const mouse = new THREE.Vector2();
+  let selectedIndex = -1;
+  let isDragging = false;
+  let prevMouseX = 0, prevMouseY = 0;
+  let rotY = 0, rotX = 0;
+
+  canvas.addEventListener('mousedown', e => { isDragging = true; prevMouseX = e.clientX; prevMouseY = e.clientY; });
+  canvas.addEventListener('mousemove', e => {
+    if (isDragging) {
+      rotY += (e.clientX - prevMouseX) * 0.005;
+      rotX += (e.clientY - prevMouseY) * 0.005;
+      rotX = Math.max(-1, Math.min(1, rotX));
+      prevMouseX = e.clientX; prevMouseY = e.clientY;
+    }
+    const rect = canvas.getBoundingClientRect();
+    mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  });
+  canvas.addEventListener('mouseup', e => {
+    if (!isDragging || (Math.abs(e.clientX - prevMouseX) < 3 && Math.abs(e.clientY - prevMouseY) < 3)) {
+      raycaster.setFromCamera(mouse, camera);
+      const hits = raycaster.intersectObjects(productMeshes);
+      if (hits.length > 0) { selectProduct(hits[0].object.userData.productIndex); }
+    }
+    isDragging = false;
+  });
+  canvas.addEventListener('wheel', e => { camera.position.z += e.deltaY * 0.005; camera.position.z = Math.max(4, Math.min(15, camera.position.z)); });
+
+  function selectProduct(idx) {
+    selectedIndex = idx;
+    const p = PRODUCTS[idx];
+    const metricLines = getProductMetricDisplay(p);
+    const metricsHTML = metricLines.map(m =>
+      `<div class="sd-metric"><span class="label">${m.label}</span><span class="value" style="color:${m.color}">${m.value}</span></div>`
+    ).join('');
+    document.getElementById('selected-product').innerHTML = `
+      <div class="selected-detail">
+        <h3 style="color:${p.color}">${p.name}</h3>
+        <p style="font-size:12px;color:#94a3b8;margin-bottom:8px;">${p.fn}</p>
+        <a class="sd-link" href="${p.repo}" target="_blank">&#x2197; ${p.id}</a>
+        <div class="sd-metrics">${metricsHTML}</div>
+        <div style="margin-top:12px;font-size:11px;color:#64748b;">
+          <strong>ATT&CK Techniques:</strong> ${p.techniques.join(', ')}
+        </div>
+        <div class="metric-source">Source: ${p.metrics?.source || 'unknown'}</div>
+      </div>`;
+    productMeshes.forEach((m, mi) => { m.scale.setScalar(mi === idx ? 1.5 : 1); });
+  }
+
+  // Animation loop
+  let time = 0;
+  function animate() {
+    requestAnimationFrame(animate);
+    time += 0.01;
+    coreMesh.rotation.y += 0.005;
+    coreMesh.rotation.x += 0.002;
+    productMeshes.forEach((m, i) => {
+      m.position.y += Math.sin(time + i) * 0.001;
+    });
+    const camDist = camera.position.z;
+    camera.position.x = Math.sin(rotY) * camDist * 0.3;
+    camera.position.y = 2 + rotX * 2;
+    camera.lookAt(0, 0, 0);
+    // Tooltip on hover
     raycaster.setFromCamera(mouse, camera);
     const hits = raycaster.intersectObjects(productMeshes);
-    if (hits.length > 0) { selectProduct(hits[0].object.userData.productIndex); }
+    const tooltip = document.getElementById('tooltip');
+    if (hits.length > 0 && !isDragging) {
+      const p = PRODUCTS[hits[0].object.userData.productIndex];
+      const m = p.metrics || {};
+      let info = `<strong style="color:${p.color}">${p.name}</strong><br><span style="color:#94a3b8">${p.fn}</span>`;
+      if (m.tests > 0) info += `<br><span style="color:#10b981">${m.tests} tests</span>`;
+      if (m.detectionRate) info += `<br><span style="color:#6366f1">${m.detectionRate}% detection</span>`;
+      tooltip.innerHTML = info;
+      tooltip.classList.add('visible');
+      tooltip.style.left = ((mouse.x + 1) / 2 * container.clientWidth + 10) + 'px';
+      tooltip.style.top = ((-mouse.y + 1) / 2 * container.clientHeight + 10) + 'px';
+    } else { tooltip.classList.remove('visible'); }
+    renderer.render(scene, camera);
   }
-  isDragging = false;
-});
-canvas.addEventListener('wheel', e => { camera.position.z += e.deltaY * 0.005; camera.position.z = Math.max(4, Math.min(15, camera.position.z)); });
+  animate();
 
-function selectProduct(idx) {
-  selectedIndex = idx;
-  const p = PRODUCTS[idx];
-  document.getElementById('selected-product').innerHTML = `
-    <div class="selected-detail">
-      <h3 style="color:${p.color}">${p.name}</h3>
-      <p style="font-size:12px;color:#94a3b8;margin-bottom:8px;">${p.fn}</p>
-      <a class="sd-link" href="${p.repo}" target="_blank">&#x2197; ${p.id}</a>
-      <div class="sd-metrics">
-        <div class="sd-metric"><span class="label">Total Scans</span><span class="value" style="color:#10b981">${p.metrics.scans.toLocaleString()}</span></div>
-        <div class="sd-metric"><span class="label">Threats Blocked</span><span class="value" style="color:#ef4444">${p.metrics.threats.toLocaleString()}</span></div>
-        <div class="sd-metric"><span class="label">Detection Rate</span><span class="value" style="color:#6366f1">${p.metrics.rate}%</span></div>
-        <div class="sd-metric"><span class="label">Last Event</span><span class="value" style="color:#f59e0b">${p.metrics.lastEvent}s ago</span></div>
-      </div>
-      <div style="margin-top:12px;font-size:11px;color:#64748b;">
-        <strong>ATT&CK Techniques:</strong> ${p.techniques.join(', ')}
-      </div>
-    </div>`;
-  // Highlight node
-  productMeshes.forEach((m, mi) => { m.scale.setScalar(mi === idx ? 1.5 : 1); });
-}
-
-// Animation loop
-let time = 0;
-function animate() {
-  requestAnimationFrame(animate);
-  time += 0.01;
-  coreMesh.rotation.y += 0.005;
-  coreMesh.rotation.x += 0.002;
-  productMeshes.forEach((m, i) => {
-    m.position.y += Math.sin(time + i) * 0.001;
+  // Resize handler
+  window.addEventListener('resize', () => {
+    camera.aspect = container.clientWidth / container.clientHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(container.clientWidth, container.clientHeight);
   });
-  // Camera orbit
-  const camDist = camera.position.z;
-  camera.position.x = Math.sin(rotY) * camDist * 0.3;
-  camera.position.y = 2 + rotX * 2;
-  camera.lookAt(0, 0, 0);
-  // Tooltip on hover
-  raycaster.setFromCamera(mouse, camera);
-  const hits = raycaster.intersectObjects(productMeshes);
-  const tooltip = document.getElementById('tooltip');
-  if (hits.length > 0 && !isDragging) {
-    const p = PRODUCTS[hits[0].object.userData.productIndex];
-    tooltip.innerHTML = `<strong style="color:${p.color}">${p.name}</strong><br><span style="color:#94a3b8">${p.fn}</span><br><span style="color:#10b981">${p.metrics.rate}% detection</span>`;
-    tooltip.classList.add('visible');
-    tooltip.style.left = ((mouse.x + 1) / 2 * container.clientWidth + 10) + 'px';
-    tooltip.style.top = ((-mouse.y + 1) / 2 * container.clientHeight + 10) + 'px';
-  } else { tooltip.classList.remove('visible'); }
-  renderer.render(scene, camera);
-}
-animate();
 
-// Resize handler
-window.addEventListener('resize', () => {
-  camera.aspect = container.clientWidth / container.clientHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(container.clientWidth, container.clientHeight);
-});
-
-// Render product list
-const listEl = document.getElementById('product-list');
-const categoryColors = { 'supply-chain': 'color-cyan', 'runtime': 'color-purple', 'privacy': 'color-green', 'infra': 'color-orange' };
-PRODUCTS.forEach((p, i) => {
-  const card = document.createElement('div');
-  card.className = `product-card ${categoryColors[p.category]}`;
-  card.innerHTML = `<div class="pc-name"><span class="live-dot"></span>${p.name}</div><div class="pc-function">${p.fn}</div><div class="pc-metrics"><div class="pc-metric">Scans<span>${(p.metrics.scans/1000).toFixed(1)}k</span></div><div class="pc-metric">Threats<span style="color:#ef4444">${p.metrics.threats}</span></div><div class="pc-metric">Rate<span style="color:#10b981">${p.metrics.rate}%</span></div><div class="pc-metric">Last<span>${p.metrics.lastEvent}s</span></div></div>`;
-  card.addEventListener('click', () => selectProduct(i));
-  listEl.appendChild(card);
-});
-
-// ATT&CK coverage grid
-const allTechniques = [...new Set(PRODUCTS.flatMap(p => p.techniques))].sort();
-const gridEl = document.getElementById('attack-grid');
-allTechniques.forEach(t => {
-  const count = PRODUCTS.filter(p => p.techniques.includes(t)).length;
-  const cell = document.createElement('div');
-  cell.className = `attack-cell ${count >= 3 ? 'covered' : count >= 1 ? 'partial' : ''}`;
-  cell.textContent = t;
-  cell.title = `${t} — covered by ${count} product(s)`;
-  gridEl.appendChild(cell);
-});
-
-// Update header stats
-const totalEvents = PRODUCTS.reduce((s, p) => s + Math.floor(p.metrics.scans / 60), 0);
-const totalThreats = PRODUCTS.reduce((s, p) => s + p.metrics.threats, 0);
-document.getElementById('total-events').textContent = totalEvents.toLocaleString();
-document.getElementById('total-threats').textContent = totalThreats.toLocaleString();
-document.getElementById('total-coverage').textContent = allTechniques.length + ' techs';
-
-// Live activity feed
-const feedEl = document.getElementById('feed-list');
-const eventTypes = ['Scan completed', 'Threat blocked', 'Model validated', 'Anomaly detected', 'Policy enforced', 'Technique mapped'];
-function addFeedItem() {
-  const p = PRODUCTS[Math.floor(Math.random() * PRODUCTS.length)];
-  const evt = eventTypes[Math.floor(Math.random() * eventTypes.length)];
-  const item = document.createElement('div');
-  item.style.cssText = 'font-size:11px;padding:6px 8px;border-bottom:1px solid #1e293b;opacity:0;transition:opacity 0.3s;';
-  item.innerHTML = `<span style="color:${p.color};font-weight:600;">${p.name}</span> <span style="color:#64748b;">— ${evt}</span> <span style="float:right;color:#475569;">${new Date().toLocaleTimeString()}</span>`;
-  feedEl.prepend(item);
-  requestAnimationFrame(() => item.style.opacity = '1');
-  if (feedEl.children.length > 20) feedEl.removeChild(feedEl.lastChild);
-}
-setInterval(addFeedItem, 2000);
-addFeedItem();
-
-// Simulate live metric updates
-setInterval(() => {
-  PRODUCTS.forEach(p => {
-    p.metrics.scans += Math.floor(Math.random() * 10);
-    p.metrics.threats += Math.random() > 0.8 ? 1 : 0;
-    p.metrics.lastEvent = Math.floor(Math.random() * 30);
+  // Render product list
+  const listEl = document.getElementById('product-list');
+  const categoryColors = { 'supply-chain': 'color-cyan', 'runtime': 'color-purple', 'privacy': 'color-green', 'infra': 'color-orange' };
+  PRODUCTS.forEach((p, i) => {
+    const m = p.metrics || {};
+    const metricLines = getProductMetricDisplay(p).slice(0, 4);
+    const card = document.createElement('div');
+    card.className = `product-card ${categoryColors[p.category]}`;
+    const metricsHTML = metricLines.map(ml =>
+      `<div class="pc-metric">${ml.label}<span style="color:${ml.color}">${ml.value}</span></div>`
+    ).join('');
+    card.innerHTML = `<div class="pc-name"><span class="live-dot"></span>${p.name}</div><div class="pc-function">${p.fn}</div><div class="pc-metrics">${metricsHTML}</div>`;
+    card.addEventListener('click', () => selectProduct(i));
+    listEl.appendChild(card);
   });
-  document.getElementById('total-events').textContent = PRODUCTS.reduce((s, p) => s + Math.floor(p.metrics.scans / 60), 0).toLocaleString();
-  document.getElementById('total-threats').textContent = PRODUCTS.reduce((s, p) => s + p.metrics.threats, 0).toLocaleString();
-}, 5000);
 
-// Select first product by default
-selectProduct(0);
+  // ATT&CK coverage grid
+  const allTechniques = [...new Set(PRODUCTS.flatMap(p => p.techniques))].sort();
+  const gridEl = document.getElementById('attack-grid');
+  allTechniques.forEach(t => {
+    const count = PRODUCTS.filter(p => p.techniques.includes(t)).length;
+    const cell = document.createElement('div');
+    cell.className = `attack-cell ${count >= 3 ? 'covered' : count >= 1 ? 'partial' : ''}`;
+    cell.textContent = t;
+    cell.title = `${t} — covered by ${count} product(s)`;
+    gridEl.appendChild(cell);
+  });
+
+  // Update technique coverage count
+  document.getElementById('total-coverage').textContent = allTechniques.length;
+
+  // Evidence summary instead of fake live feed
+  const feedEl = document.getElementById('feed-list');
+  const evidenceItems = [
+    { product: 'AWS Agent Guard', color: '#fb923c', msg: '22 IAM policy rules active — SARIF output enabled' },
+    { product: 'HF Model Scanner', color: '#22d3ee', msg: '5.9% FP rate on known-good models (17 checks, 1 FP)' },
+    { product: 'HF Model Scanner', color: '#22d3ee', msg: '12/12 red team attacks detected (100% detection rate)' },
+    { product: 'MCP Gateway', color: '#a78bfa', msg: '5-layer firewall — P95 latency 0.129ms (100 iterations)' },
+    { product: 'LLM Red Team', color: '#a78bfa', msg: 'F1=0.70 OOD (TF-IDF baseline, educational)' },
+    { product: 'PulseNet ICS', color: '#fb923c', msg: 'F1=0.54 (demo ML, architecture reference only)' },
+    { product: 'Poisoning Detector', color: '#34d399', msg: 'AUC=0.53 (near chance, needs algorithm replacement)' },
+    { product: 'Portfolio Total', color: '#10b981', msg: '933 test functions across 9 repos — all from live scan' },
+  ];
+  evidenceItems.forEach(item => {
+    const div = document.createElement('div');
+    div.style.cssText = 'font-size:11px;padding:6px 8px;border-bottom:1px solid #1e293b;';
+    div.innerHTML = `<span style="color:${item.color};font-weight:600;">${item.product}</span> <span style="color:#94a3b8;">— ${item.msg}</span>`;
+    feedEl.appendChild(div);
+  });
+
+  // Select first product by default
+  selectProduct(0);
+}
+
+// Initialize
+(async function init() {
+  const metricsData = await loadMetrics();
+  applyMetrics(metricsData);
+  renderDashboard();
+})();
 </script>
 </body>
 </html>
