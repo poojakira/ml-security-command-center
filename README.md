@@ -1,66 +1,50 @@
 # ML Security Command Center
 
-Real-time metrics dashboard for the ML security tool portfolio. Displays actual rule counts, test results, false-positive rates, and detection scores collected from live tool outputs — not random numbers.
+Portfolio metrics dashboard that pulls real data from all ML security tools. Generates a `metrics.json` artifact by scanning sibling repository directories for evidence files, test counts, and rule counts, then displays them in an interactive HTML dashboard.
 
-## Quick Start
+## Install
 
-```bash
-# Generate metrics from local repos
-py generate_metrics.py
-
-# View dashboard
-start index.html
-# or serve it:
-py -m http.server 3000
+```powershell
+git clone https://github.com/poojakira/ml-security-command-center.git
+cd ml-security-command-center
+py -m pip install aws-agent-identity-guard
 ```
 
-## How It Works
+## Generate Metrics
 
-`generate_metrics.py` scans sibling repos and extracts real data:
+```powershell
+py generate_metrics.py
+# This reads real data from sibling repo directories
+```
 
-| Source | What's Extracted |
-|--------|-----------------|
-| `aws-agent-identity-guard/src/` | Rule count (22 IAM policy rules) |
-| `aws-agent-identity-guard/tests/` | Test function count (63 tests) |
-| `hf-model-provenance-scanner/evidence/` | FP rate (5.9%), detection rate, red team results |
-| `hf-model-provenance-scanner/tests/` | Test function count (130 tests) |
-| `mcp-security-gateway-monitor/evidence/` | P95 latency, replay iterations |
-| `mcp-security-gateway-monitor/tests/` | Test function count (476 tests) |
-| Other repos `/tests/` | Test function counts |
+The script scans sibling repositories for:
+- Evidence JSON artifacts
+- Test function counts (`def test_*` in test files)
+- Rule IDs in scanner source code
+- Results from benchmark runs
 
-The script writes `metrics.json`, which `index.html` loads at runtime. No Math.random(). No fake backends.
+Output is written to `metrics.json` in the project root.
 
-## What's Displayed
+## View Dashboard
 
-- **Header stats**: Total IAM rules, total tests passing, ATT&CK technique coverage
-- **3D graph**: Products as nodes, sized by test count, connected to central hub
-- **Product cards**: Per-repo metrics (tests, detection rates, FP rates, F1 scores)
-- **ATT&CK grid**: Technique coverage across all tools
-- **Evidence summary**: Key findings from evidence JSON artifacts
+```powershell
+start index.html
+```
 
-## Files
+On Mac/Linux:
+```bash
+open index.html
+```
 
-| File | Purpose |
-|------|---------|
-| `generate_metrics.py` | Collects real metrics from sibling repos → `metrics.json` |
-| `metrics.json` | Generated data file (not committed, regenerate locally) |
-| `index.html` | Dashboard (Three.js 3D visualization + metric cards) |
-| `dashboard/index.html` | Legacy flat layout (still uses old mock data) |
+## Metrics Displayed
 
-## Metrics Are Real
+- **aws-agent-identity-guard**: Rule count, false-positive rate, test count
+- **hf-model-provenance-scanner**: Scan results, detection metrics
+- **mcp-security-gateway-monitor**: Detection rate
+- **llm-redteam-framework**: F1 score, OOD performance
+- **model-privacy-attacks**: Attack success metrics
+- **adversarial-ml-lab**: Attack/defense evaluation results
+- **PulseNet-RUL-Forecasting**: Prediction metrics
+- **dataset-poisoning-detector**: AUC scores
 
-All values come from:
-- Committed evidence JSON artifacts (FP rates, red team reports, replay benchmarks)
-- Counted `def test_*` functions in actual test files
-- Rule IDs extracted from actual scanner source code
-
-If a repo isn't available locally, the script falls back to last-known documented values and marks the source as "fallback" in the JSON.
-
-## Regenerating
-
-Run `py generate_metrics.py` whenever you want fresh numbers. The dashboard reads `metrics.json` on page load.
-
-## Requirements
-
-- Python 3.10+ (no pip dependencies needed)
-- Sibling repos checked out at `../` relative to this repo
+All metrics link back to committed evidence files. Synthetic or unavailable data is clearly labeled.
