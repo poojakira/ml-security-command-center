@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Lint & Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install tooling
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest ruff
+
+      - name: Lint
+        run: ruff check generate_metrics.py tests
+
+      - name: Format check
+        run: ruff format --check generate_metrics.py tests
+
+      - name: Run tests
+        run: python -m pytest tests/ -v
+
+      - name: Verify metrics generation (baseline fallback)
+        run: |
+          python generate_metrics.py
+          test -f metrics.json && echo "metrics.json generated"
