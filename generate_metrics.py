@@ -109,6 +109,7 @@ def collect_aws_agent_guard_metrics(baseline: dict) -> dict:
                     text=True,
                     timeout=30,
                     cwd=str(repo),
+                    check=False,  # non-zero exit means findings; we parse stdout
                 )
                 # Count findings from output
                 findings = re.findall(r"(AIG[-\w]+)", result.stdout)
