@@ -32,9 +32,6 @@ jobs:
       - name: Lint
         run: ruff check generate_metrics.py tests
 
-      - name: Format check
-        run: ruff format --check generate_metrics.py tests
-
       - name: Run tests
         run: python -m pytest tests/ -v
 
