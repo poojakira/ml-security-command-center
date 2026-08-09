@@ -11,7 +11,6 @@ Usage:
 """
 
 import json
-import os
 import re
 import subprocess
 import sys
@@ -106,8 +105,10 @@ def collect_aws_agent_guard_metrics(baseline: dict) -> dict:
             try:
                 result = subprocess.run(
                     [sys.executable, "-m", "aws_agent_identity_guard", str(policy_file)],
-                    capture_output=True, text=True, timeout=30,
-                    cwd=str(repo)
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                    cwd=str(repo),
                 )
                 # Count findings from output
                 findings = re.findall(r"(AIG[-\w]+)", result.stdout)
@@ -188,7 +189,9 @@ def collect_mcp_gateway_metrics(baseline: dict) -> dict:
         if raw:
             blocked = sum(1 for r in raw if not r.get("allowed", True))
             total = len(raw)
-            metrics["detection_rate_from_corpus"] = round(blocked / total * 100, 1) if total > 0 else 0
+            metrics["detection_rate_from_corpus"] = (
+                round(blocked / total * 100, 1) if total > 0 else 0
+            )
 
     # Count tests
     test_count = count_test_functions(repo / "tests")
@@ -277,13 +280,19 @@ def main():
     baseline = load_baseline()
 
     aws_guard = collect_aws_agent_guard_metrics(baseline)
-    print(f"  aws-agent-identity-guard: {aws_guard['rule_count']} rules, {aws_guard['test_count']} tests [{aws_guard.get('source')}]")
+    print(
+        f"  aws-agent-identity-guard: {aws_guard['rule_count']} rules, {aws_guard['test_count']} tests [{aws_guard.get('source')}]"
+    )
 
     hf_scanner = collect_hf_scanner_metrics(baseline)
-    print(f"  hf-model-provenance-scanner: {hf_scanner['test_count']} tests, {hf_scanner['fp_rate']}% FP rate [{hf_scanner.get('source')}]")
+    print(
+        f"  hf-model-provenance-scanner: {hf_scanner['test_count']} tests, {hf_scanner['fp_rate']}% FP rate [{hf_scanner.get('source')}]"
+    )
 
     mcp_gateway = collect_mcp_gateway_metrics(baseline)
-    print(f"  mcp-security-gateway-monitor: {mcp_gateway['test_count']} tests [{mcp_gateway.get('source')}]")
+    print(
+        f"  mcp-security-gateway-monitor: {mcp_gateway['test_count']} tests [{mcp_gateway.get('source')}]"
+    )
 
     others = collect_other_repos_metrics(baseline)
     for name, m in others.items():

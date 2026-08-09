@@ -65,19 +65,20 @@ def test_all_products_have_source():
     products = metrics["products"]
     for name, data in products.items():
         assert "source" in data, f"{name} missing source field"
-        assert data["source"] in ("live", "baseline"), f"{name} has unexpected source: {data['source']}"
+        assert data["source"] in (
+            "live",
+            "baseline",
+        ), f"{name} has unexpected source: {data['source']}"
 
 
 def test_summary_totals_consistent():
     """Summary total_test_functions equals sum of individual test_counts."""
     metrics = generate_metrics.generate_metrics()
     total_from_summary = metrics["summary"]["total_test_functions"]
-    total_from_products = sum(
-        p["test_count"] for p in metrics["products"].values()
-    )
-    assert total_from_summary == total_from_products, (
-        f"Summary says {total_from_summary} but product sum is {total_from_products}"
-    )
+    total_from_products = sum(p["test_count"] for p in metrics["products"].values())
+    assert (
+        total_from_summary == total_from_products
+    ), f"Summary says {total_from_summary} but product sum is {total_from_products}"
 
 
 def test_aws_guard_has_rule_count():
@@ -115,9 +116,9 @@ def test_baseline_fallback_when_repos_missing():
     products = metrics["products"]
     # All should be "baseline" source since no repos found
     for name, data in products.items():
-        assert data["source"] == "baseline", (
-            f"{name} should use baseline when repos missing, got source={data['source']}"
-        )
+        assert (
+            data["source"] == "baseline"
+        ), f"{name} should use baseline when repos missing, got source={data['source']}"
     # Values should still be real (from baseline file)
     assert products["aws-agent-identity-guard"]["rule_count"] == 25
     assert products["hf-model-provenance-scanner"]["test_count"] == 202
@@ -131,9 +132,9 @@ def test_no_zero_test_counts_in_baseline_mode():
         metrics = generate_metrics.generate_metrics()
 
     for name, data in metrics["products"].items():
-        assert data["test_count"] > 0, (
-            f"{name} has test_count=0 in baseline mode — baseline file may be incomplete"
-        )
+        assert (
+            data["test_count"] > 0
+        ), f"{name} has test_count=0 in baseline mode — baseline file may be incomplete"
 
 
 def test_metrics_json_is_valid_json():
