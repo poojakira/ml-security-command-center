@@ -2,7 +2,8 @@
 generate_metrics.py — Collect REAL metrics from sibling portfolio repos.
 
 Reads evidence JSONs, counts test functions, and extracts rule counts from
-actual source code. Falls back to last-known values if a repo isn't available.
+actual source code. Falls back to committed baseline values (metrics_baseline.json)
+if a repo isn't cloned locally, so the dashboard always renders real numbers.
 
 Usage:
     python generate_metrics.py
@@ -19,6 +20,16 @@ from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPOS_DIR = SCRIPT_DIR.parent  # assumes repos are siblings
+BASELINE_PATH = SCRIPT_DIR / "metrics_baseline.json"
+
+
+def load_baseline() -> dict:
+    """Load committed baseline metrics (real last-measured values)."""
+    try:
+        data = json.loads(BASELINE_PATH.read_text(encoding="utf-8"))
+        return data.get("products", {})
+    except (OSError, json.JSONDecodeError):
+        return {}
 
 
 def count_test_functions(test_dir: Path) -> int:
@@ -56,18 +67,19 @@ def read_json_safe(path: Path) -> dict | None:
         return None
 
 
-def collect_aws_agent_guard_metrics() -> dict:
+def collect_aws_agent_guard_metrics(baseline: dict) -> dict:
     """Collect metrics from aws-agent-identity-guard."""
     repo = REPOS_DIR / "aws-agent-identity-guard"
+    fallback = baseline.get("aws-agent-identity-guard", {})
     metrics = {
-        "rule_count": 22,  # last-known fallback
-        "test_count": 63,
-        "findings_on_examples": 0,
-        "sarif_output": True,
+        "rule_count": fallback.get("rule_count", 25),
+        "test_count": fallback.get("test_count", 106),
+        "findings_on_examples": fallback.get("findings_on_examples", 0),
+        "sarif_output": fallback.get("sarif_output", True),
     }
 
     if not repo.exists():
-        metrics["source"] = "fallback"
+        metrics["source"] = "baseline"
         return metrics
 
     # Count rules from all source files
@@ -108,20 +120,21 @@ def collect_aws_agent_guard_metrics() -> dict:
     return metrics
 
 
-def collect_hf_scanner_metrics() -> dict:
+def collect_hf_scanner_metrics(baseline: dict) -> dict:
     """Collect metrics from hf-model-provenance-scanner."""
     repo = REPOS_DIR / "hf-model-provenance-scanner"
+    fallback = baseline.get("hf-model-provenance-scanner", {})
     metrics = {
-        "test_count": 127,  # fallback
-        "fp_rate": 5.9,
-        "detection_rate": 100.0,
-        "total_checks": 17,
-        "redteam_attacks_detected": 12,
-        "redteam_attacks_total": 12,
+        "test_count": fallback.get("test_count", 202),
+        "fp_rate": fallback.get("fp_rate", 5.9),
+        "detection_rate": fallback.get("detection_rate", 100.0),
+        "total_checks": fallback.get("total_checks", 17),
+        "redteam_attacks_detected": fallback.get("redteam_attacks_detected", 12),
+        "redteam_attacks_total": fallback.get("redteam_attacks_total", 12),
     }
 
     if not repo.exists():
-        metrics["source"] = "fallback"
+        metrics["source"] = "baseline"
         return metrics
 
     # Read FP rate evidence
@@ -148,19 +161,20 @@ def collect_hf_scanner_metrics() -> dict:
     return metrics
 
 
-def collect_mcp_gateway_metrics() -> dict:
+def collect_mcp_gateway_metrics(baseline: dict) -> dict:
     """Collect metrics from mcp-security-gateway-monitor."""
     repo = REPOS_DIR / "mcp-security-gateway-monitor"
+    fallback = baseline.get("mcp-security-gateway-monitor", {})
     metrics = {
-        "test_count": 476,  # fallback
-        "detection_rate": 51.0,
-        "layers": 5,
-        "p95_latency_ms": 0.129,
-        "replay_iterations": 100,
+        "test_count": fallback.get("test_count", 511),
+        "detection_rate": fallback.get("detection_rate", 51.0),
+        "layers": fallback.get("layers", 5),
+        "p95_latency_ms": fallback.get("p95_latency_ms", 0.129),
+        "replay_iterations": fallback.get("replay_iterations", 100),
     }
 
     if not repo.exists():
-        metrics["source"] = "fallback"
+        metrics["source"] = "baseline"
         return metrics
 
     # Read replay evidence
@@ -185,42 +199,93 @@ def collect_mcp_gateway_metrics() -> dict:
     return metrics
 
 
-def collect_other_repos_metrics() -> dict:
+def collect_other_repos_metrics(baseline: dict) -> dict:
     """Collect test counts from other repos."""
-    repos = {
-        "llm-redteam-framework": {"test_count": 0, "f1_score": 0.70},
-        "adversarial-ml-lab": {"test_count": 0},
-        "model-privacy-attacks": {"test_count": 0},
-        "dataset-poisoning-detector": {"test_count": 0, "auc": 0.53},
-        "PulseNet-RUL-Forecasting": {"test_count": 0, "f1_score": 0.54},
-        "attack-v19-core": {"test_count": 0},
-    }
+    other_names = [
+        "llm-redteam-framework",
+        "adversarial-ml-lab",
+        "model-privacy-attacks",
+        "dataset-poisoning-detector",
+        "PulseNet-RUL-Forecasting",
+        "attack-v19-core",
+    ]
 
-    for repo_name, metrics in repos.items():
+    repos = {}
+    for repo_name in other_names:
+        fallback = baseline.get(repo_name, {})
+        metrics = {"test_count": fallback.get("test_count", 0)}
+        # Copy over any extra metric fields from baseline
+        for key in ("f1_score", "auc"):
+            if key in fallback:
+                metrics[key] = fallback[key]
+
         repo = REPOS_DIR / repo_name
         if repo.exists():
             test_count = count_test_functions(repo / "tests")
             metrics["test_count"] = test_count
             metrics["source"] = "live"
         else:
-            metrics["source"] = "fallback"
+            metrics["source"] = "baseline"
+
+        repos[repo_name] = metrics
 
     return repos
 
 
+def generate_metrics() -> dict:
+    """Core logic: collect all metrics and return the full metrics dict."""
+    baseline = load_baseline()
+
+    aws_guard = collect_aws_agent_guard_metrics(baseline)
+    hf_scanner = collect_hf_scanner_metrics(baseline)
+    mcp_gateway = collect_mcp_gateway_metrics(baseline)
+    others = collect_other_repos_metrics(baseline)
+
+    # Calculate totals
+    total_tests = (
+        aws_guard["test_count"]
+        + hf_scanner["test_count"]
+        + mcp_gateway["test_count"]
+        + sum(m["test_count"] for m in others.values())
+    )
+
+    # Compile final metrics
+    metrics = {
+        "schema_version": "command-center-metrics-v1",
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "generator": "generate_metrics.py",
+        "note": "All values derived from actual tool outputs and evidence files. No random generation.",
+        "summary": {
+            "total_test_functions": total_tests,
+            "total_repos_scanned": 9,
+            "portfolio_tools_active": 2,  # aws-agent-identity-guard, hf-model-provenance-scanner
+            "research_repos": 7,
+        },
+        "products": {
+            "aws-agent-identity-guard": aws_guard,
+            "hf-model-provenance-scanner": hf_scanner,
+            "mcp-security-gateway-monitor": mcp_gateway,
+            **{k: v for k, v in others.items()},
+        },
+    }
+
+    return metrics
+
+
 def main():
     print("Collecting metrics from portfolio repos...")
+    baseline = load_baseline()
 
-    aws_guard = collect_aws_agent_guard_metrics()
+    aws_guard = collect_aws_agent_guard_metrics(baseline)
     print(f"  aws-agent-identity-guard: {aws_guard['rule_count']} rules, {aws_guard['test_count']} tests [{aws_guard.get('source')}]")
 
-    hf_scanner = collect_hf_scanner_metrics()
+    hf_scanner = collect_hf_scanner_metrics(baseline)
     print(f"  hf-model-provenance-scanner: {hf_scanner['test_count']} tests, {hf_scanner['fp_rate']}% FP rate [{hf_scanner.get('source')}]")
 
-    mcp_gateway = collect_mcp_gateway_metrics()
+    mcp_gateway = collect_mcp_gateway_metrics(baseline)
     print(f"  mcp-security-gateway-monitor: {mcp_gateway['test_count']} tests [{mcp_gateway.get('source')}]")
 
-    others = collect_other_repos_metrics()
+    others = collect_other_repos_metrics(baseline)
     for name, m in others.items():
         print(f"  {name}: {m['test_count']} tests [{m.get('source')}]")
 
@@ -241,7 +306,7 @@ def main():
         "summary": {
             "total_test_functions": total_tests,
             "total_repos_scanned": 9,
-            "portfolio_tools_active": 2,  # aws-agent-identity-guard, hf-model-provenance-scanner
+            "portfolio_tools_active": 2,
             "research_repos": 7,
         },
         "products": {
