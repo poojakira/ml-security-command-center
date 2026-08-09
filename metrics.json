@@ -1,10 +1,10 @@
 {
   "schema_version": "command-center-metrics-v1",
-  "generated_at_utc": "2026-08-09T03:14:08.626066+00:00",
+  "generated_at_utc": "2026-08-09T03:36:31.917567+00:00",
   "generator": "generate_metrics.py",
   "note": "All values derived from actual tool outputs and evidence files. No random generation.",
   "summary": {
-    "total_test_functions": 1191,
+    "total_test_functions": 1198,
     "total_repos_scanned": 9,
     "portfolio_tools_active": 2,
     "research_repos": 7
@@ -28,7 +28,7 @@
       "source": "live"
     },
     "mcp-security-gateway-monitor": {
-      "test_count": 520,
+      "test_count": 527,
       "detection_rate": 51.0,
       "layers": 5,
       "p95_latency_ms": 0.129,
