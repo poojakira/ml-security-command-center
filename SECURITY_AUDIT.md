@@ -1,37 +1,32 @@
-# Security Audit — ml-security-command-center
+# Security and Truthfulness Audit
 
-**Date:** 2026-08-06  
-**Classification:** STATIC DEMONSTRATION — all data is randomly generated in JavaScript
+**Reviewed:** 2026-08-10
+**Classification:** static source inventory; not production-ready
 
----
+## Decision
 
-## Status
+The former command-center presentation was not an operational security product. It contained simulated alerts and randomized operational metrics, while another page described source-derived values as real or live. Those surfaces were removed rather than retained as a demo.
 
-A SIMULATED DATA banner has been added (commit 20fc210). All metrics displayed are randomly generated client-side JavaScript values. There is no backend, no data ingestion, no real security telemetry.
+The repository is repositioned as a small, reusable portfolio-inventory component. It reports only static observations with collection methods, Git revisions, dirty-worktree state, and explicit limitations.
 
----
+## Resolved findings
 
-## Critical Findings
+- Removed randomized scans, alerts, uptime, detection rates, and blocked-threat counts.
+- Removed historical baseline performance values without adequate provenance.
+- Replaced `live` source labels with `repository_source_snapshot`.
+- Renamed the displayed test metric to test function declarations; the collector does not claim the tests passed.
+- Removed unsupported ATT&CK coverage and operational health claims.
+- Removed the external Three.js runtime dependency and legacy simulated dashboard.
+- Added tests that reject baseline and effectiveness fields.
 
-None — there is no server-side code or API to exploit.
+## Residual risks
 
----
+- Static analysis can miss dynamically generated tests and non-Python suites.
+- A repository's source may contain incorrect or misleading content; this collector does not validate behavior.
+- A dirty sibling worktree may not match its recorded commit. The condition is surfaced, not resolved automatically.
+- The local HTTP serving command is not hardened for network exposure.
+- There is no authentication because there is no deployed service. Adding network deployment would require a new threat model and access controls.
 
-## High Findings
+## Readiness
 
-### HIGH-1: Simulated data could be mistaken for real security telemetry
-
-**Issue:** Despite the banner, the dashboard displays convincing-looking security metrics that are entirely random.  
-**Status:** Banner exists. No further code changes needed.  
-**Recommendation:** Add visible `SIMULATED DATA — NOT SECURITY EVIDENCE` label to EVERY chart and metric card.
-
----
-
-## Recommendation
-
-**ARCHIVE THIS REPOSITORY.** It provides no security value and could mislead viewers into thinking it displays real security data.
-
-If retained:
-- Maintain prominent SIMULATED DATA banner
-- Do not link from resume or portfolio as a security project
-- Do not present at interviews as evidence of security engineering
+The repository is **not production-ready** and must not be represented as security monitoring, prevention, or benchmark evidence. Its defensible use is a local, point-in-time source inventory.

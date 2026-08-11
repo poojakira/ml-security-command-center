@@ -1,215 +1,62 @@
-# Runbook — ML Security Command Center
+# Operator Runbook
 
-Step-by-step guide to generate real metrics and view the command center dashboard.
+## Scope
 
----
+This runbook operates a static portfolio inventory. There is no long-running service, security telemetry, alert queue, or enforcement action.
 
 ## Prerequisites
 
-- Python 3.10+ (`py --version` on Windows, `python3 --version` on Linux)
-- pip (bundled with Python)
-- Git
-- Sibling repos cloned (see Step 2)
+- Python 3.10+
+- Git, when revision and dirty-worktree evidence is required
+- Portfolio repositories cloned as siblings of this repository
 
----
+No third-party Python packages are required to generate the inventory.
 
-## Step 1: Install aws-agent-identity-guard
+## Generate
 
-The metrics generator depends on `aws-agent-identity-guard` to count IAM rules.
+From the repository root:
 
-**Windows (PowerShell):**
-```powershell
-py -m pip install aws-agent-identity-guard
-```
-
-**Linux/macOS:**
 ```bash
-pip install aws-agent-identity-guard
-```
-
-Verify installation:
-```powershell
-aws-agent-identity-guard --version
-```
-
----
-
-## Step 2: Ensure Sibling Repos Are Cloned
-
-`generate_metrics.py` reads evidence files and counts tests from sibling repositories. These repos must be cloned in the same parent directory:
-
-```
-C:\Users\pooja\repos\
-├── ml-security-command-center\    ← you are here
-├── aws-agent-identity-guard\
-├── hf-model-provenance-scanner\
-├── adversarial-ml-lab\
-├── dataset-poisoning-detector\
-├── llm-redteam-framework\
-├── model-privacy-attacks\
-├── attack-v19-core\
-├── mcp-security-gateway-monitor\
-├── unified-ml-security-platform\
-├── PulseNet-RUL-Forecasting\
-└── mlsec-benchmark-suite\
-```
-
-**Clone any missing repos:**
-```powershell
-cd C:\Users\pooja\repos
-git clone https://github.com/poojakira/aws-agent-identity-guard.git
-git clone https://github.com/poojakira/hf-model-provenance-scanner.git
-git clone https://github.com/poojakira/adversarial-ml-lab.git
-# ... etc for any missing repos
-```
-
----
-
-## Step 3: Run generate_metrics.py
-
-This script scans sibling repos and produces `metrics.json` with real data.
-
-**Windows (PowerShell):**
-```powershell
-cd C:\Users\pooja\repos\ml-security-command-center
-py generate_metrics.py
-```
-
-**Linux/macOS:**
-```bash
-cd ~/repos/ml-security-command-center
 python3 generate_metrics.py
+python3 -m json.tool metrics.json >/dev/null
 ```
 
-Expected output:
-```
-Scanning sibling repos...
-Found: aws-agent-identity-guard (22 rules)
-Found: hf-model-provenance-scanner (XX tests)
-...
-Wrote metrics.json
-```
+Expected output states how many configured repositories were observed and how many test function declarations were discovered. It also states that tests were not executed.
 
-Verify the output:
-```powershell
-Get-Content metrics.json | py -m json.tool
-```
+## Review before publishing
 
----
+Inspect `metrics.json` and stop publication when:
 
-## Step 4: Open index.html in Browser
+- an expected repository has `availability: unavailable`;
+- `revision` is null and revision-level traceability is required;
+- `working_tree_dirty` is true and the uncommitted state is not intentional;
+- a repository was renamed or added but `REPOSITORIES` was not updated;
+- the schema is not `portfolio-source-inventory-v2`.
 
-**Windows (PowerShell):**
-```powershell
-# Option A: Open directly
-Start-Process index.html
+Run each repository's own CI separately before making any statement about passing tests. This inventory cannot supply that evidence.
 
-# Option B: Serve locally (avoids CORS issues with fetch())
-py -m http.server 8080
-# Open http://localhost:8080
-```
+## Serve locally
 
-**Linux/macOS:**
 ```bash
 python3 -m http.server 8080
-# Open http://localhost:8080
 ```
 
-The dashboard reads `metrics.json` and displays real portfolio metrics.
+Open `http://localhost:8080/`. Do not expose this ad hoc server to an untrusted network; it is only a local file server.
 
----
+## Validate changes
 
-## Step 5: Verify Metrics Are Real (Not Random)
-
-After loading the dashboard, confirm the data is sourced from `metrics.json`:
-
-1. **Check metrics.json has a recent timestamp:**
-   ```powershell
-   py -c "import json; d=json.load(open('metrics.json')); print(d.get('generated_at', 'NO TIMESTAMP'))"
-   ```
-
-2. **Compare dashboard values to metrics.json:**
-   - Rule count should be 22 (from aws-agent-identity-guard)
-   - Test counts should match actual `def test_*` functions in sibling repos
-   - No values should be suspiciously round or obviously random
-
-3. **Verify no Math.random() in current index.html:**
-   ```powershell
-   Select-String -Pattern "Math.random" index.html
-   # Should return nothing. If it does, the dashboard is showing fake data.
-   ```
-
-4. **Check that index.html loads metrics.json:**
-   ```powershell
-   Select-String -Pattern "metrics.json" index.html
-   # Should find a fetch() or XMLHttpRequest call
-   ```
-
----
-
-## Troubleshooting
-
-### generate_metrics.py Fails with ImportError
-
-```
-ModuleNotFoundError: No module named 'aws_agent_identity_guard'
+```bash
+python3 -m pytest tests -q
+python3 -m compileall -q generate_metrics.py
 ```
 
-**Fix:** Install the package (Step 1):
-```powershell
-py -m pip install aws-agent-identity-guard
-```
+## Failure handling
 
----
+- Missing repository: clone it beside this repository or accept the explicit `unavailable` result.
+- Missing Git executable: source counts still work, but revision and dirty state are null.
+- Invalid Python test file: that file is skipped. Repair the syntax and regenerate.
+- Browser cannot load JSON: serve the directory over HTTP instead of opening `index.html` through `file://`.
 
-### Metrics Show Zero for Some Repos
+## Rollback
 
-The script falls back to last-known values if a repo isn't found. Check:
-```powershell
-# Verify the sibling directory exists
-Test-Path ..\aws-agent-identity-guard
-Test-Path ..\adversarial-ml-lab
-```
-
-If repos are in a different location, the script expects them as siblings of this directory.
-
----
-
-### Dashboard Shows "Loading..." or Blank
-
-1. CORS issue — serve with `py -m http.server` instead of opening `file://` directly.
-2. Check browser console (F12) for fetch errors.
-3. Verify `metrics.json` exists and is valid JSON:
-   ```powershell
-   py -c "import json; json.load(open('metrics.json')); print('Valid JSON')"
-   ```
-
----
-
-### Dashboard Still Shows Random Data
-
-If `index.html` still uses `Math.random()`:
-1. Ensure you're viewing the **root** `index.html`, not `dashboard/index.html`.
-2. The `dashboard/index.html` is the old static mockup — it may still have random data.
-3. The root `index.html` should fetch from `metrics.json`.
-
----
-
-## Files Reference
-
-| File | Purpose |
-|------|---------|
-| `index.html` | Main dashboard — reads metrics.json for real data |
-| `generate_metrics.py` | Scans sibling repos, produces metrics.json |
-| `metrics.json` | Generated metrics (do not hand-edit) |
-| `dashboard/index.html` | Legacy static dashboard (uses simulated data) |
-| `SECURITY_AUDIT.md` | Known issues documented |
-
----
-
-## Known Limitations
-
-- `dashboard/index.html` is the **old** mockup with Math.random() — it still exists for reference
-- Root `index.html` is the real dashboard that reads `metrics.json`
-- Metrics are point-in-time snapshots — re-run `generate_metrics.py` to refresh
-- No auto-refresh or live data pipeline
+The only generated artifact is `metrics.json`. Restore the prior committed artifact with normal Git history if a generator change is reverted. No database or migration exists.

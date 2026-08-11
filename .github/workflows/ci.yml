@@ -35,7 +35,7 @@ jobs:
       - name: Run tests
         run: python -m pytest tests/ -v
 
-      - name: Verify metrics generation (baseline fallback)
+      - name: Verify source inventory generation
         run: |
           python generate_metrics.py
           test -f metrics.json && echo "metrics.json generated"
