@@ -1,98 +1,104 @@
-"""
-generate_metrics.py — Collect REAL metrics from sibling portfolio repos.
+"""Build a traceable, point-in-time inventory of sibling repositories.
 
-Reads evidence JSONs, counts test functions, and extracts rule counts from
-actual source code. Falls back to committed baseline values (metrics_baseline.json)
-if a repo isn't cloned locally, so the dashboard always renders real numbers.
-
-Usage:
-    python generate_metrics.py
-    # Produces metrics.json in the same directory
+This collector intentionally does not report security effectiveness, passing test
+counts, uptime, alerts, or deployment status. It performs static source inspection
+and records the Git revision so readers can reproduce the observations.
 """
 
+from __future__ import annotations
+
+import ast
 import json
 import re
 import subprocess
-import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-REPOS_DIR = SCRIPT_DIR.parent  # assumes repos are siblings
-BASELINE_PATH = SCRIPT_DIR / "metrics_baseline.json"
+REPOS_DIR = SCRIPT_DIR.parent
+OUTPUT_PATH = SCRIPT_DIR / "metrics.json"
 
-
-def load_baseline() -> dict:
-    """Load committed baseline metrics (real last-measured values)."""
-    try:
-        data = json.loads(BASELINE_PATH.read_text(encoding="utf-8"))
-        return data.get("products", {})
-    except (OSError, json.JSONDecodeError):
-        return {}
+REPOSITORIES = (
+    "adversarial-ml-lab",
+    "attack-v19-core",
+    "aws-agent-identity-guard",
+    "dataset-poisoning-detector",
+    "hf-model-provenance-scanner",
+    "llm-redteam-framework",
+    "mcp-security-gateway-monitor",
+    "mlsec-benchmark-suite",
+    "model-privacy-attacks",
+    "PulseNet-RUL-Forecasting",
+    "unified-ml-security-platform",
+)
 
 
 def count_test_functions(test_dir: Path) -> int:
-    """Count def test_* functions in all test_*.py files recursively."""
+    """Count Python test function declarations without executing them."""
     count = 0
-    if not test_dir.exists():
-        return 0
-    for py_file in test_dir.rglob("test_*.py"):
+    if not test_dir.is_dir():
+        return count
+
+    for path in test_dir.rglob("test_*.py"):
         try:
-            content = py_file.read_text(encoding="utf-8", errors="ignore")
-            count += len(re.findall(r"^\s*def test_", content, re.MULTILINE))
-        except OSError:
-            pass
+            tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        except (OSError, SyntaxError, UnicodeError):
+            continue
+        count += sum(
+            isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name.startswith("test_")
+            for node in ast.walk(tree)
+        )
     return count
 
 
-def count_rule_ids(scanner_path: Path) -> int:
-    """Count unique AIG rule IDs in scanner source."""
-    if not scanner_path.exists():
-        return 0
-    try:
-        content = scanner_path.read_text(encoding="utf-8", errors="ignore")
-        ids = set(re.findall(r'"(AIG[-0-9TP]+)"', content))
-        # Filter partial matches (like "AIG-P" which is a prefix)
-        return len([r for r in ids if re.match(r"^AIG[-0-9TP]+\d$", r)])
-    except OSError:
-        return 0
-
-
-def read_json_safe(path: Path) -> dict | None:
-    """Read a JSON file, return None on failure."""
-    try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
+def count_aws_rule_ids(repo: Path) -> int | None:
+    """Count unique AIG rule identifiers declared in scanner source files."""
+    source_dir = repo / "src" / "aws_agent_identity_guard"
+    if not source_dir.is_dir():
         return None
 
+    rule_ids: set[str] = set()
+    for path in source_dir.rglob("*.py"):
+        try:
+            source = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeError):
+            continue
+        rule_ids.update(re.findall(r'\bAIG(?:-|)[A-Z0-9]*\d{3}\b', source))
+    return len(rule_ids)
 
-def collect_aws_agent_guard_metrics(baseline: dict) -> dict:
-    """Collect metrics from aws-agent-identity-guard."""
-    repo = REPOS_DIR / "aws-agent-identity-guard"
-    fallback = baseline.get("aws-agent-identity-guard", {})
-    metrics = {
-        "rule_count": fallback.get("rule_count", 25),
-        "test_count": fallback.get("test_count", 106),
-        "findings_on_examples": fallback.get("findings_on_examples", 0),
-        "sarif_output": fallback.get("sarif_output", True),
-    }
 
-    if not repo.exists():
-        metrics["source"] = "baseline"
-        return metrics
+def run_git(repo: Path, *args: str) -> str | None:
+    """Run a read-only Git query and return stripped output when successful."""
+    try:
+        result = subprocess.run(
+            ["git", *args],
+            cwd=repo,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return result.stdout.strip() if result.returncode == 0 else None
 
-    # Count rules from all source files
-    src_dir = repo / "src" / "aws_agent_identity_guard"
-    if src_dir.exists():
-        all_ids = set()
-        for py_file in src_dir.rglob("*.py"):
-            content = py_file.read_text(encoding="utf-8", errors="ignore")
-            ids = re.findall(r'"(AIG[-\w]+\d)"', content)
-            all_ids.update(ids)
-        if all_ids:
-            metrics["rule_count"] = len(all_ids)
 
-    # Count tests
+def collect_repository(repo_name: str) -> dict:
+    """Collect reproducible static observations for one sibling repository."""
+    repo = REPOS_DIR / repo_name
+    if not repo.is_dir():
+        return {
+            "availability": "unavailable",
+            "source": "none",
+            "revision": None,
+            "working_tree_dirty": None,
+            "test_function_count": None,
+            "observations": [],
+        }
+
+    revision = run_git(repo, "rev-parse", "HEAD")
+    status = run_git(repo, "status", "--porcelain")
     test_count = count_test_functions(repo / "tests")
     if test_count > 0:
         metrics["test_count"] = test_count
@@ -214,123 +220,71 @@ def collect_other_repos_metrics(baseline: dict) -> dict:
         "attack-v19-core",
     ]
 
-    repos = {}
-    for repo_name in other_names:
-        fallback = baseline.get(repo_name, {})
-        metrics = {"test_count": fallback.get("test_count", 0)}
-        # Copy over any extra metric fields from baseline
-        for key in ("f1_score", "auc"):
-            if key in fallback:
-                metrics[key] = fallback[key]
+    record = {
+        "availability": "observed",
+        "source": "repository_source_snapshot",
+        "revision": revision,
+        "working_tree_dirty": bool(status) if status is not None else None,
+        "test_function_count": test_count,
+        "observations": observations,
+    }
 
-        repo = REPOS_DIR / repo_name
-        if repo.exists():
-            test_count = count_test_functions(repo / "tests")
-            metrics["test_count"] = test_count
-            metrics["source"] = "live"
-        else:
-            metrics["source"] = "baseline"
+    if repo_name == "aws-agent-identity-guard":
+        rule_count = count_aws_rule_ids(repo)
+        record["rule_id_count"] = rule_count
+        observations.append(
+            {
+                "name": "rule_id_count",
+                "value": rule_count,
+                "method": "Unique AIG rule identifiers found in scanner Python source",
+                "interpretation": "Declared rule IDs only; not a coverage or effectiveness claim.",
+            }
+        )
 
-        repos[repo_name] = metrics
-
-    return repos
+    return record
 
 
 def generate_metrics() -> dict:
-    """Core logic: collect all metrics and return the full metrics dict."""
-    baseline = load_baseline()
-
-    aws_guard = collect_aws_agent_guard_metrics(baseline)
-    hf_scanner = collect_hf_scanner_metrics(baseline)
-    mcp_gateway = collect_mcp_gateway_metrics(baseline)
-    others = collect_other_repos_metrics(baseline)
-
-    # Calculate totals
-    total_tests = (
-        aws_guard["test_count"]
-        + hf_scanner["test_count"]
-        + mcp_gateway["test_count"]
-        + sum(m["test_count"] for m in others.values())
-    )
-
-    # Compile final metrics
-    metrics = {
-        "schema_version": "command-center-metrics-v1",
+    """Return the complete point-in-time portfolio inventory."""
+    products = {name: collect_repository(name) for name in REPOSITORIES}
+    observed = [p for p in products.values() if p["availability"] == "observed"]
+    return {
+        "schema_version": "portfolio-source-inventory-v2",
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "generator": "generate_metrics.py",
-        "note": "All values derived from actual tool outputs and evidence files. No random generation.",
+        "classification": "static_source_inventory",
+        "limitations": [
+            "No tests are executed by this collector.",
+            "Source counts do not measure security effectiveness or production readiness.",
+            "No runtime telemetry, uptime, alert, customer, or deployment data is collected.",
+            "A dirty sibling worktree means observations may not match its recorded revision.",
+        ],
         "summary": {
-            "total_test_functions": total_tests,
-            "total_repos_scanned": 9,
-            "portfolio_tools_active": 2,  # aws-agent-identity-guard, hf-model-provenance-scanner
-            "research_repos": 7,
+            "repositories_configured": len(REPOSITORIES),
+            "repositories_observed": len(observed),
+            "repositories_unavailable": len(REPOSITORIES) - len(observed),
+            "test_functions_discovered": sum(
+                p["test_function_count"] or 0 for p in observed
+            ),
         },
-        "products": {
-            "aws-agent-identity-guard": aws_guard,
-            "hf-model-provenance-scanner": hf_scanner,
-            "mcp-security-gateway-monitor": mcp_gateway,
-            **{k: v for k, v in others.items()},
-        },
+        "products": products,
     }
 
-    return metrics
 
-
-def main():
-    print("Collecting metrics from portfolio repos...")
-    baseline = load_baseline()
-
-    aws_guard = collect_aws_agent_guard_metrics(baseline)
+def main() -> None:
+    metrics = generate_metrics()
+    OUTPUT_PATH.write_text(json.dumps(metrics, indent=2) + "\n", encoding="utf-8")
+    summary = metrics["summary"]
+    print(f"Wrote {OUTPUT_PATH}")
     print(
-        f"  aws-agent-identity-guard: {aws_guard['rule_count']} rules, {aws_guard['test_count']} tests [{aws_guard.get('source')}]"
+        "Observed "
+        f"{summary['repositories_observed']}/{summary['repositories_configured']} "
+        "configured sibling repositories."
     )
-
-    hf_scanner = collect_hf_scanner_metrics(baseline)
     print(
-        f"  hf-model-provenance-scanner: {hf_scanner['test_count']} tests, {hf_scanner['fp_rate']}% FP rate [{hf_scanner.get('source')}]"
+        f"Discovered {summary['test_functions_discovered']} test function declarations; "
+        "tests were not executed."
     )
-
-    mcp_gateway = collect_mcp_gateway_metrics(baseline)
-    print(
-        f"  mcp-security-gateway-monitor: {mcp_gateway['test_count']} tests [{mcp_gateway.get('source')}]"
-    )
-
-    others = collect_other_repos_metrics(baseline)
-    for name, m in others.items():
-        print(f"  {name}: {m['test_count']} tests [{m.get('source')}]")
-
-    # Calculate totals
-    total_tests = (
-        aws_guard["test_count"]
-        + hf_scanner["test_count"]
-        + mcp_gateway["test_count"]
-        + sum(m["test_count"] for m in others.values())
-    )
-
-    # Compile final metrics
-    metrics = {
-        "schema_version": "command-center-metrics-v1",
-        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
-        "generator": "generate_metrics.py",
-        "note": "All values derived from actual tool outputs and evidence files. No random generation.",
-        "summary": {
-            "total_test_functions": total_tests,
-            "total_repos_scanned": 9,
-            "portfolio_tools_active": 2,
-            "research_repos": 7,
-        },
-        "products": {
-            "aws-agent-identity-guard": aws_guard,
-            "hf-model-provenance-scanner": hf_scanner,
-            "mcp-security-gateway-monitor": mcp_gateway,
-            **{k: v for k, v in others.items()},
-        },
-    }
-
-    output_path = SCRIPT_DIR / "metrics.json"
-    output_path.write_text(json.dumps(metrics, indent=2), encoding="utf-8")
-    print(f"\nWrote {output_path}")
-    print(f"Total test functions across portfolio: {total_tests}")
 
 
 if __name__ == "__main__":

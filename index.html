@@ -1,379 +1,215 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ML Security Command Center</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: #0a0e17; color: #e2e8f0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; overflow-x: hidden; }
-#app { display: grid; grid-template-rows: 56px auto 1fr 220px; height: 100vh; }
-header { display: flex; align-items: center; justify-content: space-between; padding: 0 24px; background: #0f1420; border-bottom: 1px solid #1e293b; z-index: 100; }
-header h1 { font-size: 16px; font-weight: 600; letter-spacing: -0.3px; }
-header h1 span { color: #6366f1; }
-.header-stats { display: flex; gap: 24px; font-size: 12px; }
-.header-stats .stat { display: flex; flex-direction: column; align-items: center; }
-.header-stats .stat-value { font-size: 18px; font-weight: 700; color: #10b981; }
-.header-stats .stat-label { color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; font-size: 10px; }
-#data-banner { background: #064e3b; border-bottom: 1px solid #10b981; padding: 5px 24px; font-size: 11px; color: #6ee7b7; text-align: center; letter-spacing: 0.3px; font-weight: 600; }
-#main { display: grid; grid-template-columns: 1fr 340px; position: relative; }
-#canvas-container { position: relative; overflow: hidden; }
-#three-canvas { width: 100%; height: 100%; display: block; }
-#detail-panel { background: #0f1420; border-left: 1px solid #1e293b; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
-#detail-panel h2 { font-size: 14px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; }
-.product-card { background: #1a1f2e; border: 1px solid #2d3748; border-radius: 8px; padding: 14px; cursor: pointer; transition: border-color 0.2s, transform 0.1s; }
-.product-card:hover { border-color: #6366f1; transform: translateY(-1px); }
-.product-card .pc-name { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
-.product-card .pc-function { font-size: 11px; color: #64748b; margin-bottom: 8px; }
-.product-card .pc-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.product-card .pc-metric { font-size: 10px; }
-.product-card .pc-metric span { display: block; font-size: 14px; font-weight: 700; }
-.color-cyan .pc-name { color: #22d3ee; }
-.color-purple .pc-name { color: #a78bfa; }
-.color-green .pc-name { color: #34d399; }
-.color-orange .pc-name { color: #fb923c; }
-#bottom-panel { background: #0f1420; border-top: 1px solid #1e293b; padding: 16px 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; overflow-y: auto; }
-#bottom-panel h3 { font-size: 12px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
-.attack-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 4px; }
-.attack-cell { background: #1a1f2e; border-radius: 4px; padding: 4px 6px; font-size: 10px; text-align: center; border: 1px solid #2d3748; }
-.attack-cell.covered { background: #064e3b; border-color: #10b981; color: #6ee7b7; }
-.attack-cell.partial { background: #422006; border-color: #f59e0b; color: #fcd34d; }
-#tooltip { position: absolute; background: #1e293b; border: 1px solid #475569; border-radius: 6px; padding: 10px 14px; font-size: 12px; pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 1000; max-width: 240px; }
-#tooltip.visible { opacity: 1; }
-.live-dot { width: 6px; height: 6px; border-radius: 50%; background: #10b981; display: inline-block; animation: pulse 2s infinite; margin-right: 6px; }
-@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-.selected-detail { background: #1a1f2e; border: 1px solid #2d3748; border-radius: 8px; padding: 16px; }
-.selected-detail h3 { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
-.selected-detail .sd-link { color: #6366f1; text-decoration: none; font-size: 12px; }
-.selected-detail .sd-link:hover { text-decoration: underline; }
-.sd-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
-.sd-metric { background: #0f1420; border-radius: 6px; padding: 10px; }
-.sd-metric .label { font-size: 10px; color: #64748b; text-transform: uppercase; }
-.sd-metric .value { font-size: 18px; font-weight: 700; margin-top: 2px; }
-.metric-source { font-size: 9px; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ML Security Portfolio Inventory</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17202a;
+      --muted: #5d6874;
+      --line: #d8dee5;
+      --paper: #ffffff;
+      --surface: #f4f6f8;
+      --accent: #086f83;
+      --ok: #24734b;
+      --warn: #9a5b13;
+      --bad: #a43b35;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--surface);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    header {
+      background: #12232b;
+      color: #f8fafc;
+      border-bottom: 4px solid #16a0a8;
+    }
+    .header-inner, main { width: min(1180px, calc(100% - 32px)); margin: 0 auto; }
+    .header-inner { padding: 24px 0 20px; }
+    h1 { margin: 0; font-size: 24px; letter-spacing: 0; }
+    .subtitle { margin: 5px 0 0; color: #c5d1d6; }
+    .boundary {
+      background: #fff3cd;
+      border-bottom: 1px solid #e5c866;
+      color: #573f00;
+      padding: 9px 16px;
+      text-align: center;
+      font-weight: 650;
+    }
+    main { padding: 28px 0 48px; }
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      border: 1px solid var(--line);
+      background: var(--paper);
+      margin-bottom: 24px;
+    }
+    .summary-item { padding: 16px; border-right: 1px solid var(--line); }
+    .summary-item:last-child { border-right: 0; }
+    .summary-value { display: block; font-size: 23px; font-weight: 750; color: var(--accent); }
+    .summary-label { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+    .section-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin: 0 0 10px; }
+    h2 { margin: 0; font-size: 17px; }
+    #generated-at { color: var(--muted); font-size: 12px; }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); background: var(--paper); }
+    table { border-collapse: collapse; width: 100%; min-width: 850px; }
+    th, td { padding: 11px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { background: #e9edf1; color: #35414c; font-size: 11px; text-transform: uppercase; }
+    tbody tr:last-child td { border-bottom: 0; }
+    a { color: #066b7b; font-weight: 650; }
+    code { font-family: "SFMono-Regular", Consolas, monospace; font-size: 12px; }
+    .status { display: inline-flex; align-items: center; gap: 6px; font-weight: 650; }
+    .status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--bad); }
+    .status.observed::before { background: var(--ok); }
+    .dirty { color: var(--warn); font-weight: 650; }
+    .clean { color: var(--ok); }
+    .unknown { color: var(--muted); }
+    .limitations {
+      margin-top: 24px;
+      padding: 18px 20px;
+      border-left: 4px solid var(--accent);
+      background: var(--paper);
+    }
+    .limitations h2 { margin-bottom: 8px; }
+    .limitations ul { margin: 0; padding-left: 20px; }
+    .error { padding: 14px; border: 1px solid #d8958f; background: #fff0ef; color: #702822; }
+    footer { color: var(--muted); font-size: 12px; margin-top: 20px; }
+    @media (max-width: 760px) {
+      .summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .summary-item:nth-child(2) { border-right: 0; }
+      .summary-item:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+      .section-heading { align-items: start; flex-direction: column; }
+    }
+  </style>
 </head>
 <body>
-<div id="app">
-<header>
-<h1><span>&#9632;</span> ML Security Command Center</h1>
-<div class="header-stats">
-<div class="stat"><span class="stat-value" id="total-rules">—</span><span class="stat-label">IAM Rules</span></div>
-<div class="stat"><span class="stat-value" id="total-tests">—</span><span class="stat-label">Tests Passing</span></div>
-<div class="stat"><span class="stat-value" id="total-coverage">—</span><span class="stat-label">ATT&CK Techniques</span></div>
-<div class="stat"><span class="stat-value" id="total-repos">9</span><span class="stat-label">Repos</span></div>
-</div>
-</header>
-<div id="data-banner">&#10003; REAL DATA — Metrics generated from actual tool outputs via generate_metrics.py. Last updated: <span id="last-updated">loading...</span></div>
-<div id="main">
-<div id="canvas-container"><canvas id="three-canvas"></canvas></div>
-<div id="detail-panel">
-<h2>Products</h2>
-<div id="product-list"></div>
-<div id="selected-product"></div>
-</div>
-</div>
-<div id="bottom-panel">
-<div id="attack-coverage"><h3>ATT&CK v19 Technique Coverage</h3><div class="attack-grid" id="attack-grid"></div></div>
-<div id="activity-feed"><h3>Portfolio Evidence Summary</h3><div id="feed-list"></div></div>
-</div>
-</div>
-<div id="tooltip"></div>
-<script>
-const PRODUCTS = [
-  { id: 'hf-model-provenance-scanner', name: 'HF Model Scanner', fn: 'Model supply-chain scanning', color: '#22d3ee', category: 'supply-chain', techniques: ['T1195.001','T1683','T1683/001','T1027/018','T1685'], repo: 'https://github.com/poojakira/hf-model-provenance-scanner' },
-  { id: 'mcp-security-gateway-monitor', name: 'MCP Gateway', fn: 'MCP tool-call firewall (5-layer)', color: '#a78bfa', category: 'runtime', techniques: ['T1684','T1687','T1685','T1689'], repo: 'https://github.com/poojakira/mcp-security-gateway-monitor' },
-  { id: 'llm-redteam-framework', name: 'LLM Red Team', fn: 'Prompt injection detection', color: '#a78bfa', category: 'runtime', techniques: ['T1685','T1682','T1684','T1689'], repo: 'https://github.com/poojakira/llm-redteam-framework' },
-  { id: 'adversarial-ml-lab', name: 'Adversarial ML Lab', fn: 'Adversarial robustness (FGSM/PGD/C&W)', color: '#a78bfa', category: 'runtime', techniques: ['T1685','T1682','T1689'], repo: 'https://github.com/poojakira/adversarial-ml-lab' },
-  { id: 'dataset-poisoning-detector', name: 'Poisoning Detector', fn: 'Training data anomaly detection', color: '#34d399', category: 'privacy', techniques: ['T1685','T1688'], repo: 'https://github.com/poojakira/dataset-poisoning-detector' },
-  { id: 'model-privacy-attacks', name: 'Privacy Attacks', fn: 'Membership inference / extraction', color: '#34d399', category: 'privacy', techniques: ['T1685','T1689','T1682'], repo: 'https://github.com/poojakira/model-privacy-attacks' },
-  { id: 'PulseNet-RUL-Forecasting', name: 'PulseNet ICS', fn: 'Predictive maintenance + ICS security', color: '#fb923c', category: 'infra', techniques: ['T1691','T1692','T1693','T1694','T1695','T0843','T0873','T0846'], repo: 'https://github.com/poojakira/PulseNet-RUL-Forecasting' },
-  { id: 'attack-v19-core', name: 'ATT&CK v19 Core', fn: 'MITRE ATT&CK v19 data models', color: '#fb923c', category: 'infra', techniques: ['TA0005','TA0112','T1682','T1683','T1684','T1685','T1686','T1687','T1688','T1689'], repo: 'https://github.com/poojakira/attack-v19-core' },
-  { id: 'aws-agent-identity-guard', name: 'AWS Agent Guard', fn: 'IAM guardrails for AI agents', color: '#fb923c', category: 'infra', techniques: ['T1078','T1098','T1548'], repo: 'https://github.com/poojakira/aws-agent-identity-guard' },
-  { id: 'unified-ml-security-platform', name: 'Unified Platform', fn: 'Architecture integration spec', color: '#fb923c', category: 'infra', techniques: ['T1685','T1683','T1684','T1687','T1689'], repo: 'https://github.com/poojakira/unified-ml-security-platform' },
-  { id: 'mlsec-benchmark-suite', name: 'Benchmark Suite', fn: 'Independent benchmark infrastructure', color: '#22d3ee', category: 'supply-chain', techniques: ['T1685','T1682','T1689'], repo: 'https://github.com/poojakira/mlsec-benchmark-suite' }
-];
+  <header>
+    <div class="header-inner">
+      <h1>ML Security Portfolio Inventory</h1>
+      <p class="subtitle">Traceable, point-in-time source observations across sibling repositories</p>
+    </div>
+  </header>
+  <div class="boundary">Static source inventory. Not runtime monitoring, security effectiveness evidence, or a production control.</div>
 
-// Load real metrics from metrics.json
-async function loadMetrics() {
-  try {
-    const response = await fetch('metrics.json');
-    if (!response.ok) throw new Error('metrics.json not found');
-    return await response.json();
-  } catch (e) {
-    console.warn('Could not load metrics.json, using embedded fallback:', e.message);
-    return null;
-  }
-}
+  <main>
+    <section class="summary" aria-label="Inventory summary">
+      <div class="summary-item"><span class="summary-value" id="observed">-</span><span class="summary-label">Repositories observed</span></div>
+      <div class="summary-item"><span class="summary-value" id="configured">-</span><span class="summary-label">Repositories configured</span></div>
+      <div class="summary-item"><span class="summary-value" id="unavailable">-</span><span class="summary-label">Repositories unavailable</span></div>
+      <div class="summary-item"><span class="summary-value" id="test-functions">-</span><span class="summary-label">Test declarations discovered</span></div>
+    </section>
 
-function applyMetrics(metricsData) {
-  if (!metricsData) return;
+    <section aria-labelledby="inventory-heading">
+      <div class="section-heading">
+        <h2 id="inventory-heading">Repository observations</h2>
+        <span id="generated-at">Loading metrics.json...</span>
+      </div>
+      <div class="table-wrap" id="inventory-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Repository</th>
+              <th>Availability</th>
+              <th>Revision</th>
+              <th>Worktree</th>
+              <th>Test declarations</th>
+              <th>Rule IDs</th>
+              <th>Source</th>
+            </tr>
+          </thead>
+          <tbody id="inventory-body"></tbody>
+        </table>
+      </div>
+    </section>
 
-  const products = metricsData.products || {};
+    <section class="limitations" aria-labelledby="limitations-heading">
+      <h2 id="limitations-heading">Interpretation limits</h2>
+      <ul id="limitations"></ul>
+    </section>
 
-  // Map metrics onto PRODUCTS array
-  PRODUCTS.forEach(p => {
-    const data = products[p.id];
-    if (data) {
-      p.metrics = {
-        tests: data.test_count || 0,
-        ruleCount: data.rule_count || null,
-        fpRate: data.fp_rate || null,
-        detectionRate: data.detection_rate || null,
-        f1Score: data.f1_score || null,
-        auc: data.auc || null,
-        layers: data.layers || null,
-        p95Latency: data.p95_latency_ms || null,
-        source: data.source || 'unknown'
-      };
-    } else {
-      p.metrics = { tests: 0, source: 'none' };
+    <footer>Generated locally by <code>generate_metrics.py</code>. Verify behavior and passing tests in each repository's own CI artifacts.</footer>
+  </main>
+
+  <script>
+    const REPO_BASE = "https://github.com/poojakira/";
+
+    function textCell(value, className = "") {
+      const cell = document.createElement("td");
+      cell.textContent = value;
+      if (className) cell.className = className;
+      return cell;
     }
-  });
 
-  // Update header stats
-  const summary = metricsData.summary || {};
-  document.getElementById('total-rules').textContent = products['aws-agent-identity-guard']?.rule_count || 22;
-  document.getElementById('total-tests').textContent = (summary.total_test_functions || 0).toLocaleString();
+    function renderInventory(data) {
+      const summary = data.summary || {};
+      document.getElementById("observed").textContent = summary.repositories_observed ?? "-";
+      document.getElementById("configured").textContent = summary.repositories_configured ?? "-";
+      document.getElementById("unavailable").textContent = summary.repositories_unavailable ?? "-";
+      document.getElementById("test-functions").textContent = summary.test_functions_discovered ?? "-";
+      document.getElementById("generated-at").textContent = data.generated_at_utc
+        ? `Generated ${new Date(data.generated_at_utc).toLocaleString()}`
+        : "Generation time unavailable";
 
-  // Update timestamp
-  const ts = metricsData.generated_at_utc;
-  if (ts) {
-    const date = new Date(ts);
-    document.getElementById('last-updated').textContent = date.toLocaleString();
-  }
-}
+      const body = document.getElementById("inventory-body");
+      body.replaceChildren();
+      Object.entries(data.products || {}).forEach(([name, record]) => {
+        const row = document.createElement("tr");
+        const repository = document.createElement("td");
+        const link = document.createElement("a");
+        link.href = REPO_BASE + encodeURIComponent(name);
+        link.textContent = name;
+        repository.appendChild(link);
+        row.appendChild(repository);
 
-function getProductMetricDisplay(p) {
-  const m = p.metrics || {};
-  let lines = [];
+        const availability = textCell(record.availability || "unknown", `status ${record.availability || ""}`);
+        row.appendChild(availability);
+        row.appendChild(textCell(record.revision ? record.revision.slice(0, 12) : "unavailable"));
 
-  if (m.tests > 0) lines.push({ label: 'Tests', value: m.tests, color: '#10b981' });
-  if (m.ruleCount) lines.push({ label: 'Rules', value: m.ruleCount, color: '#6366f1' });
-  if (m.fpRate !== null && m.fpRate !== undefined) lines.push({ label: 'FP Rate', value: m.fpRate + '%', color: '#f59e0b' });
-  if (m.detectionRate !== null && m.detectionRate !== undefined) lines.push({ label: 'Detection', value: m.detectionRate + '%', color: '#10b981' });
-  if (m.f1Score !== null && m.f1Score !== undefined) lines.push({ label: 'F1 Score', value: m.f1Score, color: '#a78bfa' });
-  if (m.auc !== null && m.auc !== undefined) lines.push({ label: 'AUC', value: m.auc, color: '#f59e0b' });
-  if (m.layers) lines.push({ label: 'Layers', value: m.layers, color: '#22d3ee' });
-  if (m.p95Latency !== null && m.p95Latency !== undefined) lines.push({ label: 'P95 (ms)', value: m.p95Latency, color: '#34d399' });
+        let worktree = "unknown";
+        let worktreeClass = "unknown";
+        if (record.working_tree_dirty === true) { worktree = "dirty"; worktreeClass = "dirty"; }
+        if (record.working_tree_dirty === false) { worktree = "clean"; worktreeClass = "clean"; }
+        row.appendChild(textCell(worktree, worktreeClass));
+        row.appendChild(textCell(record.test_function_count ?? "unavailable"));
+        row.appendChild(textCell(record.rule_id_count ?? "not collected"));
+        row.appendChild(textCell(record.source || "none"));
+        body.appendChild(row);
+      });
 
-  return lines;
-}
-
-function renderDashboard() {
-  // Three.js Scene
-  const canvas = document.getElementById('three-canvas');
-  const container = document.getElementById('canvas-container');
-  const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x0a0e17);
-  const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
-  camera.position.set(0, 2, 8);
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-  renderer.setSize(container.clientWidth, container.clientHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-
-  // Lighting
-  scene.add(new THREE.AmbientLight(0x404060, 0.6));
-  const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-  dirLight.position.set(5, 10, 5);
-  scene.add(dirLight);
-  const pointLight = new THREE.PointLight(0x6366f1, 1, 20);
-  pointLight.position.set(0, 0, 0);
-  scene.add(pointLight);
-
-  // Central node — size proportional to total tests
-  const coreGeo = new THREE.IcosahedronGeometry(0.5, 2);
-  const coreMat = new THREE.MeshPhongMaterial({ color: 0x6366f1, emissive: 0x3730a3, shininess: 100, transparent: true, opacity: 0.9 });
-  const coreMesh = new THREE.Mesh(coreGeo, coreMat);
-  scene.add(coreMesh);
-
-  // Product nodes — size proportional to test count
-  const productMeshes = [];
-  const lineMaterial = new THREE.LineBasicMaterial({ color: 0x334155, transparent: true, opacity: 0.4 });
-  const maxTests = Math.max(...PRODUCTS.map(p => (p.metrics?.tests || 1)));
-
-  PRODUCTS.forEach((p, i) => {
-    const angle = (i / PRODUCTS.length) * Math.PI * 2;
-    const radius = 3.5;
-    const y = Math.sin(i * 0.5) * 0.8;
-    const x = Math.cos(angle) * radius;
-    const z = Math.sin(angle) * radius;
-    // Node size scaled by test count (min 0.15, max 0.45)
-    const testRatio = (p.metrics?.tests || 1) / maxTests;
-    const nodeSize = 0.15 + testRatio * 0.30;
-    const geo = new THREE.SphereGeometry(nodeSize, 32, 32);
-    const mat = new THREE.MeshPhongMaterial({ color: new THREE.Color(p.color), emissive: new THREE.Color(p.color).multiplyScalar(0.3), shininess: 80 });
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.set(x, y, z);
-    mesh.userData = { productIndex: i };
-    scene.add(mesh);
-    productMeshes.push(mesh);
-    // Connection line to center
-    const lineGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(x,y,z)]);
-    scene.add(new THREE.Line(lineGeo, lineMaterial));
-  });
-
-  // Particle field background
-  const particleGeo = new THREE.BufferGeometry();
-  const particleCount = 500;
-  const positions = new Float32Array(particleCount * 3);
-  for (let i = 0; i < particleCount * 3; i++) positions[i] = (Math.random() - 0.5) * 30;
-  particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  const particleMat = new THREE.PointsMaterial({ color: 0x1e293b, size: 0.05 });
-  scene.add(new THREE.Points(particleGeo, particleMat));
-
-  // Mouse interaction
-  const raycaster = new THREE.Raycaster();
-  const mouse = new THREE.Vector2();
-  let selectedIndex = -1;
-  let isDragging = false;
-  let prevMouseX = 0, prevMouseY = 0;
-  let rotY = 0, rotX = 0;
-
-  canvas.addEventListener('mousedown', e => { isDragging = true; prevMouseX = e.clientX; prevMouseY = e.clientY; });
-  canvas.addEventListener('mousemove', e => {
-    if (isDragging) {
-      rotY += (e.clientX - prevMouseX) * 0.005;
-      rotX += (e.clientY - prevMouseY) * 0.005;
-      rotX = Math.max(-1, Math.min(1, rotX));
-      prevMouseX = e.clientX; prevMouseY = e.clientY;
+      const limitations = document.getElementById("limitations");
+      limitations.replaceChildren();
+      (data.limitations || []).forEach((item) => {
+        const entry = document.createElement("li");
+        entry.textContent = item;
+        limitations.appendChild(entry);
+      });
     }
-    const rect = canvas.getBoundingClientRect();
-    mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-    mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-  });
-  canvas.addEventListener('mouseup', e => {
-    if (!isDragging || (Math.abs(e.clientX - prevMouseX) < 3 && Math.abs(e.clientY - prevMouseY) < 3)) {
-      raycaster.setFromCamera(mouse, camera);
-      const hits = raycaster.intersectObjects(productMeshes);
-      if (hits.length > 0) { selectProduct(hits[0].object.userData.productIndex); }
+
+    async function init() {
+      try {
+        const response = await fetch("metrics.json", { cache: "no-store" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        if (data.schema_version !== "portfolio-source-inventory-v2") {
+          throw new Error("unsupported metrics schema");
+        }
+        renderInventory(data);
+      } catch (error) {
+        const container = document.getElementById("inventory-container");
+        container.className = "error";
+        container.textContent = `Unable to load metrics.json: ${error.message}. Run generate_metrics.py and serve this directory over HTTP.`;
+        document.getElementById("generated-at").textContent = "Inventory unavailable";
+      }
     }
-    isDragging = false;
-  });
-  canvas.addEventListener('wheel', e => { camera.position.z += e.deltaY * 0.005; camera.position.z = Math.max(4, Math.min(15, camera.position.z)); });
 
-  function selectProduct(idx) {
-    selectedIndex = idx;
-    const p = PRODUCTS[idx];
-    const metricLines = getProductMetricDisplay(p);
-    const metricsHTML = metricLines.map(m =>
-      `<div class="sd-metric"><span class="label">${m.label}</span><span class="value" style="color:${m.color}">${m.value}</span></div>`
-    ).join('');
-    document.getElementById('selected-product').innerHTML = `
-      <div class="selected-detail">
-        <h3 style="color:${p.color}">${p.name}</h3>
-        <p style="font-size:12px;color:#94a3b8;margin-bottom:8px;">${p.fn}</p>
-        <a class="sd-link" href="${p.repo}" target="_blank">&#x2197; ${p.id}</a>
-        <div class="sd-metrics">${metricsHTML}</div>
-        <div style="margin-top:12px;font-size:11px;color:#64748b;">
-          <strong>ATT&CK Techniques:</strong> ${p.techniques.join(', ')}
-        </div>
-        <div class="metric-source">Source: ${p.metrics?.source || 'unknown'}</div>
-      </div>`;
-    productMeshes.forEach((m, mi) => { m.scale.setScalar(mi === idx ? 1.5 : 1); });
-  }
-
-  // Animation loop
-  let time = 0;
-  function animate() {
-    requestAnimationFrame(animate);
-    time += 0.01;
-    coreMesh.rotation.y += 0.005;
-    coreMesh.rotation.x += 0.002;
-    productMeshes.forEach((m, i) => {
-      m.position.y += Math.sin(time + i) * 0.001;
-    });
-    const camDist = camera.position.z;
-    camera.position.x = Math.sin(rotY) * camDist * 0.3;
-    camera.position.y = 2 + rotX * 2;
-    camera.lookAt(0, 0, 0);
-    // Tooltip on hover
-    raycaster.setFromCamera(mouse, camera);
-    const hits = raycaster.intersectObjects(productMeshes);
-    const tooltip = document.getElementById('tooltip');
-    if (hits.length > 0 && !isDragging) {
-      const p = PRODUCTS[hits[0].object.userData.productIndex];
-      const m = p.metrics || {};
-      let info = `<strong style="color:${p.color}">${p.name}</strong><br><span style="color:#94a3b8">${p.fn}</span>`;
-      if (m.tests > 0) info += `<br><span style="color:#10b981">${m.tests} tests</span>`;
-      if (m.detectionRate) info += `<br><span style="color:#6366f1">${m.detectionRate}% detection</span>`;
-      tooltip.innerHTML = info;
-      tooltip.classList.add('visible');
-      tooltip.style.left = ((mouse.x + 1) / 2 * container.clientWidth + 10) + 'px';
-      tooltip.style.top = ((-mouse.y + 1) / 2 * container.clientHeight + 10) + 'px';
-    } else { tooltip.classList.remove('visible'); }
-    renderer.render(scene, camera);
-  }
-  animate();
-
-  // Resize handler
-  window.addEventListener('resize', () => {
-    camera.aspect = container.clientWidth / container.clientHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(container.clientWidth, container.clientHeight);
-  });
-
-  // Render product list
-  const listEl = document.getElementById('product-list');
-  const categoryColors = { 'supply-chain': 'color-cyan', 'runtime': 'color-purple', 'privacy': 'color-green', 'infra': 'color-orange' };
-  PRODUCTS.forEach((p, i) => {
-    const m = p.metrics || {};
-    const metricLines = getProductMetricDisplay(p).slice(0, 4);
-    const card = document.createElement('div');
-    card.className = `product-card ${categoryColors[p.category]}`;
-    const metricsHTML = metricLines.map(ml =>
-      `<div class="pc-metric">${ml.label}<span style="color:${ml.color}">${ml.value}</span></div>`
-    ).join('');
-    card.innerHTML = `<div class="pc-name"><span class="live-dot"></span>${p.name}</div><div class="pc-function">${p.fn}</div><div class="pc-metrics">${metricsHTML}</div>`;
-    card.addEventListener('click', () => selectProduct(i));
-    listEl.appendChild(card);
-  });
-
-  // ATT&CK coverage grid
-  const allTechniques = [...new Set(PRODUCTS.flatMap(p => p.techniques))].sort();
-  const gridEl = document.getElementById('attack-grid');
-  allTechniques.forEach(t => {
-    const count = PRODUCTS.filter(p => p.techniques.includes(t)).length;
-    const cell = document.createElement('div');
-    cell.className = `attack-cell ${count >= 3 ? 'covered' : count >= 1 ? 'partial' : ''}`;
-    cell.textContent = t;
-    cell.title = `${t} — covered by ${count} product(s)`;
-    gridEl.appendChild(cell);
-  });
-
-  // Update technique coverage count
-  document.getElementById('total-coverage').textContent = allTechniques.length;
-
-  // Evidence summary instead of fake live feed
-  const feedEl = document.getElementById('feed-list');
-  const evidenceItems = [
-    { product: 'AWS Agent Guard', color: '#fb923c', msg: '22 IAM policy rules active — SARIF output enabled' },
-    { product: 'HF Model Scanner', color: '#22d3ee', msg: '5.9% FP rate on known-good models (17 checks, 1 FP)' },
-    { product: 'HF Model Scanner', color: '#22d3ee', msg: '12/12 red team attacks detected (100% detection rate)' },
-    { product: 'MCP Gateway', color: '#a78bfa', msg: '5-layer firewall — P95 latency 0.129ms (100 iterations)' },
-    { product: 'LLM Red Team', color: '#a78bfa', msg: 'F1=0.70 OOD (TF-IDF baseline, educational)' },
-    { product: 'PulseNet ICS', color: '#fb923c', msg: 'F1=0.54 (demo ML, architecture reference only)' },
-    { product: 'Poisoning Detector', color: '#34d399', msg: 'AUC=0.53 (near chance, needs algorithm replacement)' },
-    { product: 'Portfolio Total', color: '#10b981', msg: '933 test functions across 9 repos — all from live scan' },
-  ];
-  evidenceItems.forEach(item => {
-    const div = document.createElement('div');
-    div.style.cssText = 'font-size:11px;padding:6px 8px;border-bottom:1px solid #1e293b;';
-    div.innerHTML = `<span style="color:${item.color};font-weight:600;">${item.product}</span> <span style="color:#94a3b8;">— ${item.msg}</span>`;
-    feedEl.appendChild(div);
-  });
-
-  // Select first product by default
-  selectProduct(0);
-}
-
-// Initialize
-(async function init() {
-  const metricsData = await loadMetrics();
-  applyMetrics(metricsData);
-  renderDashboard();
-})();
-</script>
+    init();
+  </script>
 </body>
 </html>
