@@ -50,7 +50,7 @@ C:\Users\pooja\repos\
 ├── attack-v19-core\
 ├── mcp-security-gateway-monitor\
 ├── unified-ml-security-platform\
-├── PulseNet-RUL-Forecasting\
+├── PulseNet-RUL-Forecasting\  [ARCHIVED — not an active security product]
 └── mlsec-benchmark-suite\
 ```
 

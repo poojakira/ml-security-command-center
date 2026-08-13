@@ -210,7 +210,7 @@ def collect_other_repos_metrics(baseline: dict) -> dict:
         "adversarial-ml-lab",
         "model-privacy-attacks",
         "dataset-poisoning-detector",
-        "PulseNet-RUL-Forecasting",
+        # "PulseNet-RUL-Forecasting",  # ARCHIVED — removed from active metrics
         "attack-v19-core",
     ]
 
