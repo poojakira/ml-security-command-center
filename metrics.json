@@ -1,6 +1,6 @@
 {
   "schema_version": "portfolio-source-inventory-v2",
-  "generated_at_utc": "2026-08-11T06:08:33.822774+00:00",
+  "generated_at_utc": "2026-08-16T06:57:02.129338+00:00",
   "generator": "generate_metrics.py",
   "classification": "static_source_inventory",
   "limitations": [
@@ -13,19 +13,19 @@
     "repositories_configured": 11,
     "repositories_observed": 11,
     "repositories_unavailable": 0,
-    "test_functions_discovered": 1254
+    "test_functions_discovered": 1304
   },
   "products": {
     "adversarial-ml-lab": {
       "availability": "observed",
       "source": "repository_source_snapshot",
-      "revision": "4bd1c78e17076539e5f0652233d1c0da22a88abe",
+      "revision": "b493fe243b644cc4178fa931d2f2b69b47f84cdd",
       "working_tree_dirty": false,
-      "test_function_count": 23,
+      "test_function_count": 33,
       "observations": [
         {
           "name": "test_function_count",
-          "value": 23,
+          "value": 33,
           "method": "AST count of test_* function declarations under tests/",
           "interpretation": "Static source count only; tests were not executed."
         }
@@ -34,13 +34,13 @@
     "attack-v19-core": {
       "availability": "observed",
       "source": "repository_source_snapshot",
-      "revision": "a1aa90108320378c191eaced8a87d36043fe8a05",
-      "working_tree_dirty": false,
-      "test_function_count": 80,
+      "revision": "e5eb65049973142f8c6e98e51099bbed301504f9",
+      "working_tree_dirty": true,
+      "test_function_count": 104,
       "observations": [
         {
           "name": "test_function_count",
-          "value": 80,
+          "value": 104,
           "method": "AST count of test_* function declarations under tests/",
           "interpretation": "Static source count only; tests were not executed."
         }
@@ -86,7 +86,7 @@
     "hf-model-provenance-scanner": {
       "availability": "observed",
       "source": "repository_source_snapshot",
-      "revision": "4efd7f8fee7b26a5f9230705ce4bdf851056f300",
+      "revision": "908eb75126eba85bca90a02cb17bf94f17c9963a",
       "working_tree_dirty": false,
       "test_function_count": 204,
       "observations": [
@@ -101,7 +101,7 @@
     "llm-redteam-framework": {
       "availability": "observed",
       "source": "repository_source_snapshot",
-      "revision": "9d28cb5f7788ad0625d8e44383babff1076b485c",
+      "revision": "2df0df827378b2b0175b4df0ae62e720d1d214bf",
       "working_tree_dirty": false,
       "test_function_count": 69,
       "observations": [
@@ -113,11 +113,11 @@
         }
       ]
     },
-    "mcp-security-gateway-monitor": {
+    "mcp-agent-security-gateway": {
       "availability": "observed",
       "source": "repository_source_snapshot",
-      "revision": "2ec2a6aabce1218d25ecfd8790269aeeedd0c31a",
-      "working_tree_dirty": false,
+      "revision": "060c4724df6fb386ad088a01b4fbcaa10275d003",
+      "working_tree_dirty": true,
       "test_function_count": 527,
       "observations": [
         {
@@ -132,7 +132,7 @@
       "availability": "observed",
       "source": "repository_source_snapshot",
       "revision": "3675b2f03d6decfa2ab72769d08fde3ecca22883",
-      "working_tree_dirty": false,
+      "working_tree_dirty": true,
       "test_function_count": 28,
       "observations": [
         {
@@ -146,7 +146,7 @@
     "model-privacy-attacks": {
       "availability": "observed",
       "source": "repository_source_snapshot",
-      "revision": "655dbb9e8b6aade6f876246d9fa126bb390e77c2",
+      "revision": "3cad2813fe8090bc5518fcde083b9ca54d17a2da",
       "working_tree_dirty": false,
       "test_function_count": 18,
       "observations": [
@@ -161,13 +161,13 @@
     "PulseNet-RUL-Forecasting": {
       "availability": "observed",
       "source": "repository_source_snapshot",
-      "revision": "34ee4fd298e3419293ba72ac67fdaa6070f987c0",
-      "working_tree_dirty": false,
-      "test_function_count": 132,
+      "revision": "1c0617459b88fb6368bd16b548620bed4ada7055",
+      "working_tree_dirty": true,
+      "test_function_count": 148,
       "observations": [
         {
           "name": "test_function_count",
-          "value": 132,
+          "value": 148,
           "method": "AST count of test_* function declarations under tests/",
           "interpretation": "Static source count only; tests were not executed."
         }
@@ -176,8 +176,8 @@
     "unified-ml-security-platform": {
       "availability": "observed",
       "source": "repository_source_snapshot",
-      "revision": "b846b288f4422dfc047f511166f08885a071c594",
-      "working_tree_dirty": false,
+      "revision": "898f76ad0a4708d6065761d1be927c5061436609",
+      "working_tree_dirty": true,
       "test_function_count": 12,
       "observations": [
         {
